@@ -88,6 +88,10 @@ set(LIB_SOURCES
     fileloader.hpp
     prover.cpp
     prover.h
+    proverapi.hpp
+    proverapi.cpp
+    fullprover.hpp
+    fullprover.cpp
     ../depends/ffiasm/c/misc.cpp
     ../depends/ffiasm/c/naf.cpp
     ../depends/ffiasm/c/splitparstr.cpp
@@ -113,16 +117,21 @@ set_target_properties(rapidsnarkStaticFrFq PROPERTIES POSITION_INDEPENDENT_CODE 
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES OUTPUT_NAME rapidsnark-fr-fq)
 
 add_executable(prover main_prover.cpp)
+add_executable(proverServer main_proofserver.cpp)
 target_link_libraries(prover rapidsnarkStatic)
+target_link_libraries(proverServer rapidsnarkStatic)
+target_link_libraries(proverServer pistache)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
 if(USE_LOGGER OR NOT USE_OPENMP)
     target_link_libraries(prover pthread)
+    target_link_libraries(proverServer pthread)
 endif()
 
 if(USE_SODIUM)
     target_link_libraries(prover sodium)
+    target_link_libraries(proverServer sodium)
 endif()
 
 
@@ -134,6 +143,7 @@ if(OpenMP_CXX_FOUND)
 
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
         target_link_libraries(prover OpenMP::OpenMP_CXX)
+        target_link_libraries(proverServer OpenMP::OpenMP_CXX)
     endif()
 
 endif()

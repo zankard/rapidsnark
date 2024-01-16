@@ -2,14 +2,14 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <fstream>
 
 #include "fullprover.hpp"
 #include "fr.hpp"
 
-#include "logger.hpp"
+#include "logging.hpp"
 #include "wtns_utils.hpp"
 
-using namespace CPlusPlusLogging;
 
 std::string getfilename(std::string path)
 {

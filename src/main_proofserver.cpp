@@ -2,9 +2,8 @@
 #include <pistache/endpoint.h>
 #include "proverapi.hpp"
 #include "fullprover.hpp"
-#include "logger.hpp"
+#include "logging.hpp"
 
-using namespace CPlusPlusLogging;
 using namespace Pistache;
 using namespace Pistache::Rest;
 
@@ -15,8 +14,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    Logger::getInstance()->enableConsoleLogging();
-    Logger::getInstance()->updateLogLevel(LOG_LEVEL_DEBUG);
     LOG_INFO("Initializing server...");
     int port = std::stoi(argv[1]); // parse port
     // parse the zkeys

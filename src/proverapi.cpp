@@ -1,6 +1,6 @@
 #include "proverapi.hpp"
 #include "nlohmann/json.hpp"
-#include "logger.hpp"
+#include "logging.hpp"
 
 using namespace Pistache;
 using json = nlohmann::json;
