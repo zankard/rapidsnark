@@ -9,43 +9,55 @@ using json = nlohmann::json;
 #include "groth16.hpp"
 #include "binfile_utils.hpp"
 #include "zkey_utils.hpp"
+#include <pistache/http_defs.h>
+
+struct FullProverError {
+  Pistache::Http::Code code;
+  std::string message;
+  std::string details;
+
+  FullProverError(Pistache::Http::Code _code, std::string _message, std::string _details) 
+    : code(_code), message(_message), details(_details) {}
+};
+
+static const FullProverError Invalid_Witness_Input 
+  = FullProverError(
+        Pistache::Http::Code::Bad_Request,
+        "Invalid witness input",
+        "Invalid witness input"
+      );
+static const FullProverError Witness_Generation_Binary_Problem
+  = FullProverError(
+        Pistache::Http::Code::Internal_Server_Error,
+        "Witness generation problem",
+        "There was a problem running the witness generation phase binary."
+      );
+static const FullProverError Witness_Generation_Invalid_Curve
+  = FullProverError(
+        Pistache::Http::Code::Internal_Server_Error,
+        "Witness generation problem",
+        "The generated witness file uses a different curve than bn128, which is currently the only supported curve."
+      );
 
 class FullProver {
-    enum Status {aborted = -2, busy = -1,  failed = 0, success = 1, unverified =2, uninitialized=3, initializing=5, ready=6 };
-    Status status;
     std::mutex mtx;
 
-    std::string pendingInput;
-    std::string executingInput;
-    std::string pendingCircuit;
-    std::string executingCircuit;
+    std::string circuit;
+    std::string witnessBinaryPath;
 
-    std::map<std::string, std::unique_ptr<Groth16::Prover<AltBn128::Engine>>> provers;
-    std::map<std::string, std::unique_ptr<ZKeyUtils::Header>> zkHeaders;
-    std::map<std::string, std::unique_ptr<BinFileUtils::BinFile>> zKeys;
+    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
+    std::unique_ptr<ZKeyUtils::Header> zkHeader;
+    std::unique_ptr<BinFileUtils::BinFile> zKey;
 
     mpz_t altBbn128r;
 
-    json proof;
-    json pubData;
-    std::string errString;
-
-    bool canceled;
-
-    bool isCanceled();
-    void calcFinished();
-    void thread_calculateProve();
-    void checkPending();
 
 
 
 public: 
-    FullProver(std::string zkeyFileNames[], int size);
+    FullProver(std::string zkeyFileName, std::string _witnessBinaryPath);
     ~FullProver();
-    void startProve(std::string input, std::string circuit);
-    void abort();
-    json getStatus();
-    std::string &getErrString() { return errString; };
+    json prove(std::string input);
 
 
 };
