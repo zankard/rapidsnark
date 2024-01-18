@@ -1,3 +1,9 @@
+# Aptos version of RapidSnark
+
+Note: to deploy a prover, use the repo [zkid-prover-service-rapidsnark](https://github.com/aptos-labs/zkid-prover-service-rapidsnark). It has this repo as a submodule, and building the docker container will build the prover automatically.
+
+--------
+
 ## Important note 
 
 **This is a new implementation of rapidsnark. The original (and now obsoleted) implemenation is available here: [rapidsnark-old](https://github.com/iden3/rapidsnark-old).**
