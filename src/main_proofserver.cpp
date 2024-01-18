@@ -1,5 +1,6 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
+#include "logger.hpp"
 #include "proverapi.hpp"
 #include "fullprover.hpp"
 #include "logging.hpp"
@@ -14,6 +15,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    //CPlusPlusLogging::Logger::getInstance()->enaleLog();
+    CPlusPlusLogging::Logger::getInstance()->enableConsoleLogging();
     LOG_INFO("Initializing server...");
     int port = std::stoi(argv[1]); // parse port
     std::string zkeyFileName = argv[2];

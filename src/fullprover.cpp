@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <fstream>
+#include <chrono>
+
 
 #include "fullprover.hpp"
 #include "fr.hpp"
@@ -63,7 +65,6 @@ json FullProver::prove(std::string input) {
     LOG_DEBUG(input);
     std::lock_guard<std::mutex> guard(mtx);
     
-    LOG_TRACE(input);
     // Generate witness
     json j = json::parse(input);
 
@@ -79,11 +80,12 @@ json FullProver::prove(std::string input) {
     std::array<char, 128> buffer;
     std::string result;
 
+    auto start = std::chrono::high_resolution_clock::now();
     // std::cout << "Opening reading pipe" << std::endl;
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
     {
-        std::cerr << "Couldn't start command." << std::endl;
+        LOG_ERROR("Couldn't start witness generation binary.");
         throw Witness_Generation_Binary_Problem;
     }
     while (fgets(buffer.data(), 128, pipe) != NULL) {
@@ -91,13 +93,25 @@ json FullProver::prove(std::string input) {
         result += buffer.data();
     }
     auto returnCode = pclose(pipe);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
     if (returnCode != 0) {
         LOG_ERROR("The witness generation phase binary threw a nonzero exit code.");
         throw Witness_Generation_Binary_Problem;
     }
 
-    std::cout << result << std::endl;
-    std::cout << returnCode << std::endl;
+    LOG_DEBUG(result);
+    {
+      std::stringstream ss;
+      ss << "return code: " << returnCode;
+      LOG_DEBUG(ss.str().data());
+    }
+    {
+      std::stringstream ss;
+      ss << "Time taken for witness generation: " << duration.count() << " milliseconds";
+      LOG_INFO(ss.str().data());
+    }
     
     // Load witness
     auto wtns = BinFileUtils::openExisting(witnessFile, "wtns", 2);
@@ -110,8 +124,19 @@ json FullProver::prove(std::string input) {
 
     AltBn128::FrElement *wtnsData = (AltBn128::FrElement *)wtns->getSectionData(2);
 
-    return prover->prove(wtnsData)->toJson();
+    start = std::chrono::high_resolution_clock::now();
+    json proof = prover->prove(wtnsData)->toJson();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    {
+      std::stringstream ss;
+      ss << "Time taken for Groth16 prover: " << duration.count() << " milliseconds";
+      LOG_INFO(ss.str().data());
+    }
 
     LOG_TRACE("FullProver::prove end");
+
+    return proof;
 }
 

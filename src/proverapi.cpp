@@ -18,7 +18,7 @@ void ProverAPI::postProve(const Rest::Request& request, Http::ResponseWriter res
     }
 }
 
-json errorToJson(FullProverError e) {
+json ProverAPI::errorToJson(FullProverError e) {
     json j = { 
         {"status", "error"},
         {"code", e.code },

@@ -4,8 +4,8 @@ const fetch = require('node-fetch');
 const input = fs.readFileSync(process.argv[2], "utf8");
 const circuit = process.argv[3];
 
-async function callInput() {
-    const rawResponse = await fetch(`http://localhost:9080/input/${circuit}`, {
+async function callProve() {
+    const rawResponse = await fetch(`http://localhost:8080/prove`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -14,34 +14,15 @@ async function callInput() {
       body: input
     });
     if (rawResponse.ok) {
-        return true;
+        return rawResponse.json();
     } else {
         throw new Error(rawResponse.status);
     }
 };
 
-
-async function getStatus() {
-    const rawResponse = await fetch('http://localhost:9080/status', {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json'
-        }
-    });
-    if (!rawResponse.ok) {
-        throw new Error(rawResponse.status);
-    }
-    return rawResponse.json();
-}
-
 async function run() {
-    await callInput();
-    let st;
-    st = await getStatus();
-    while (st.status == "busy") {
-        st = await getStatus();
-    }
-    console.log(JSON.stringify(st, null,1));
+    let j = await callProve();
+    console.log(JSON.stringify(j, null,1));
 }
 
 run().then(() => {
