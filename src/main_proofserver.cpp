@@ -1,9 +1,19 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
-#include "logger.hpp"
-#include "proverapi.hpp"
+
+#include <iostream>
+#include <fstream>
+#include <gmp.h>
+#include <memory>
+#include <stdexcept>
+#include <nlohmann/json.hpp>
+
+#include <alt_bn128.hpp>
+#include "binfile_utils.hpp"
+#include "zkey_utils.hpp"
+#include "wtns_utils.hpp"
+#include "groth16.hpp"
 #include "fullprover.hpp"
-#include "logging.hpp"
 
 using namespace Pistache;
 using namespace Pistache::Rest;
