@@ -47,7 +47,7 @@ template <typename Engine>
 std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement *wtns) {
 
 #ifdef USE_OPENMP
-    LOG_TRACE("Start Multiexp A");
+    LOG_TRACE("OPENMP Start Multiexp A");
     uint32_t sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
     E.g1.multiMulByScalar(pi_a, pointsA, (uint8_t *)wtns, sW, nVars);
@@ -55,21 +55,21 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     ss2 << "pi_a: " << E.g1.toString(pi_a);
     LOG_DEBUG(ss2);
 
-    LOG_TRACE("Start Multiexp B1");
+    LOG_TRACE("OPENMP Start Multiexp B1");
     typename Engine::G1Point pib1;
     E.g1.multiMulByScalar(pib1, pointsB1, (uint8_t *)wtns, sW, nVars);
     std::ostringstream ss3;
     ss3 << "pib1: " << E.g1.toString(pib1);
     LOG_DEBUG(ss3);
 
-    LOG_TRACE("Start Multiexp B2");
+    LOG_TRACE("OPENMP Start Multiexp B2");
     typename Engine::G2Point pi_b;
     E.g2.multiMulByScalar(pi_b, pointsB2, (uint8_t *)wtns, sW, nVars);
     std::ostringstream ss4;
     ss4 << "pi_b: " << E.g2.toString(pi_b);
     LOG_DEBUG(ss4);
 
-    LOG_TRACE("Start Multiexp C");
+    LOG_TRACE("OPENMP Start Multiexp C");
     typename Engine::G1Point pi_c;
     E.g1.multiMulByScalar(pi_c, pointsC, (uint8_t *)((uint64_t)wtns + (nPublic +1)*sW), sW, nVars-nPublic-1);
     std::ostringstream ss5;
