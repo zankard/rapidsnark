@@ -10,6 +10,7 @@
 #include "zkey_utils.hpp"
 #include "wtns_utils.hpp"
 #include "groth16.hpp"
+#include "fullprover.hpp"
 
 using json = nlohmann::json;
 
@@ -20,7 +21,7 @@ int main(int argc, char **argv)
 {
     if (argc != 5) {
         std::cerr << "Invalid number of parameters:\n";
-        std::cerr << "Usage: prover <circuit.zkey> <witness.wtns> <proof.json> <public.json>\n";
+        std::cerr << "Usage: prover <circuit.zkey> <witnessBinaryPath> <proof.json>\n";
         return EXIT_FAILURE;
     }
 
@@ -31,62 +32,27 @@ int main(int argc, char **argv)
 
     try {
         std::string zkeyFilename = argv[1];
-        std::string wtnsFilename = argv[2];
-        std::string proofFilename = argv[3];
-        std::string publicFilename = argv[4];
+        std::string witnessBinaryPath = argv[2];
+        std::string inputFilename = argv[3];
+        std::string proofFilename = argv[4];
 
         auto zkey = BinFileUtils::openExisting(zkeyFilename, "zkey", 1);
         auto zkeyHeader = ZKeyUtils::loadHeader(zkey.get());
+        FullProver fullProver(zkeyFilename, witnessBinaryPath);
 
-        std::string proofStr;
-        if (mpz_cmp(zkeyHeader->rPrime, altBbn128r) != 0) {
-            throw std::invalid_argument( "zkey curve not supported" );
-        }
+        std::ifstream inputFile;
+        inputFile.open(inputFilename);
 
-        auto wtns = BinFileUtils::openExisting(wtnsFilename, "wtns", 2);
-        auto wtnsHeader = WtnsUtils::loadHeader(wtns.get());
+        std::stringstream buffer;
+        buffer << inputFile.rdbuf();
 
-        if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0) {
-            throw std::invalid_argument( "different wtns curve" );
-        }
-
-        auto prover = Groth16::makeProver<AltBn128::Engine>(
-            zkeyHeader->nVars,
-            zkeyHeader->nPublic,
-            zkeyHeader->domainSize,
-            zkeyHeader->nCoefs,
-            zkeyHeader->vk_alpha1,
-            zkeyHeader->vk_beta1,
-            zkeyHeader->vk_beta2,
-            zkeyHeader->vk_delta1,
-            zkeyHeader->vk_delta2,
-            zkey->getSectionData(4),    // Coefs
-            zkey->getSectionData(5),    // pointsA
-            zkey->getSectionData(6),    // pointsB1
-            zkey->getSectionData(7),    // pointsB2
-            zkey->getSectionData(8),    // pointsC
-            zkey->getSectionData(9)     // pointsH1
-        );
-        AltBn128::FrElement *wtnsData = (AltBn128::FrElement *)wtns->getSectionData(2);
-        auto proof = prover->prove(wtnsData);
+        json j = fullProver.prove(buffer.str());
 
         std::ofstream proofFile;
         proofFile.open (proofFilename);
-        proofFile << proof->toJson();
+        proofFile << j;
         proofFile.close();
 
-        std::ofstream publicFile;
-        publicFile.open (publicFilename);
-
-        json jsonPublic;
-        AltBn128::FrElement aux;
-        for (int i=1; i<=zkeyHeader->nPublic; i++) {
-            AltBn128::Fr.toMontgomery(aux, wtnsData[i]);
-            jsonPublic.push_back(AltBn128::Fr.toString(aux));
-        }
-
-        publicFile << jsonPublic;
-        publicFile.close();
 
     } catch (std::exception* e) {
         mpz_clear(altBbn128r);
