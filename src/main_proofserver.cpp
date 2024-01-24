@@ -1,8 +1,20 @@
 #define CPPHTTPLIB_THREAD_POOL_COUNT 1
 #include <httplib.h>
-//#include "logger.hpp"
+#include <iostream>
+#include <fstream>
+#include <gmp.h>
+#include <memory>
+#include <stdexcept>
+#include <nlohmann/json.hpp>
+#include <pistache/router.h>
+#include <pistache/endpoint.h>
+
+#include <alt_bn128.hpp>
+#include "binfile_utils.hpp"
+#include "zkey_utils.hpp"
+#include "wtns_utils.hpp"
+#include "groth16.hpp"
 #include "fullprover.hpp"
-//#include "logging.hpp"
 
 
 json errorToJson(FullProverError e) {
@@ -23,12 +35,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
-
-
-    //CPlusPlusLogging::Logger::getInstance()->enaleLog();
-    //CPlusPlusLogging::Logger::getInstance()->enableConsoleLogging();
-    //LOG_INFO("Initializing server...");
     int port = std::stoi(argv[1]); // parse port
     std::string zkeyFileName = argv[2];
     std::string witnessBinaryPath = argv[3];
@@ -39,10 +45,8 @@ int main(int argc, char **argv) {
     httplib::Server svr;
 
     svr.Post("/prove", [&](const httplib::Request& req, httplib::Response& res) {
-        LOG_TRACE("starting prove");
         try {
         json j = fullProver.prove(req.body);
-        LOG_DEBUG(j.dump().c_str());
         res.set_content(j.dump(), "application/json");
         } catch (FullProverError e) {
         res.set_content(errorToJson(e).dump(), "application/json");
@@ -51,7 +55,6 @@ int main(int argc, char **argv) {
     });
 
     std::string serverReady("Server ready on port " + std::to_string(port) + "...");
-    //LOG_INFO(serverReady);
 
     svr.listen("0.0.0.0", port);
 

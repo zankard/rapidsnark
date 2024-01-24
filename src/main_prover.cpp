@@ -19,18 +19,12 @@ using json = nlohmann::json;
 #define handle_error(msg) \
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     if (argc != 5) {
         std::cerr << "Invalid number of parameters:\n";
         std::cerr << "Usage: prover <circuit.zkey> <witnessBinaryPath> <proof.json>\n";
         return EXIT_FAILURE;
     }
-
-    mpz_t altBbn128r;
-
-    mpz_init(altBbn128r);
-    mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
     try {
         std::string zkeyFilename = argv[1];
@@ -55,15 +49,12 @@ int main(int argc, char **argv)
 
 
     } catch (std::exception* e) {
-        mpz_clear(altBbn128r);
         std::cerr << e->what() << '\n';
         return EXIT_FAILURE;
     } catch (std::exception& e) {
-        mpz_clear(altBbn128r);
         std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
     }
 
-    mpz_clear(altBbn128r);
     exit(EXIT_SUCCESS);
 }
