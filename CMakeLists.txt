@@ -53,6 +53,7 @@ endif()
 
 
 add_subdirectory(src)
+add_subdirectory(depends/pistache)
 
 
 install(TARGETS prover proverServer rapidsnark rapidsnarkStatic rapidsnarkStaticFrFq test_prover fr fq
