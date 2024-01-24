@@ -1,6 +1,7 @@
 #include "random_generator.hpp"
 #include "logging.hpp"
 #include <future>
+#include <iostream>
 
 namespace Groth16 {
 
@@ -47,6 +48,7 @@ template <typename Engine>
 std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement *wtns) {
 
 #ifdef USE_OPENMP
+  std::cout << "using openmp" << endl;
     LOG_TRACE("OPENMP Start Multiexp A");
     uint32_t sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
