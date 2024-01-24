@@ -36,8 +36,6 @@ int main(int argc, char **argv)
         std::string inputFilename = argv[3];
         std::string proofFilename = argv[4];
 
-        auto zkey = BinFileUtils::openExisting(zkeyFilename, "zkey", 1);
-        auto zkeyHeader = ZKeyUtils::loadHeader(zkey.get());
         FullProver fullProver(zkeyFilename, witnessBinaryPath);
 
         std::ifstream inputFile;
