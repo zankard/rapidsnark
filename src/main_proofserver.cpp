@@ -4,10 +4,6 @@
 #include "fullprover.hpp"
 //#include "logging.hpp"
 
-using namespace Pistache;
-using namespace Pistache::Rest;
-
-
 
 json errorToJson(FullProverError e) {
     json j = { 

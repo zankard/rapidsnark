@@ -1,7 +1,6 @@
 #include <httplib.h>
 #include "fullprover.hpp"
 
-using namespace Pistache;
 
 class ProverAPI {
     FullProver &fullProver;

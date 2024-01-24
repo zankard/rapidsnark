@@ -124,7 +124,7 @@ add_executable(prover main_prover.cpp)
 add_executable(proverServer main_proofserver.cpp)
 target_link_libraries(prover rapidsnarkStatic)
 target_link_libraries(proverServer rapidsnarkStatic)
-target_link_libraries(proverServer pistache)
+target_link_libraries(prover pistache)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
