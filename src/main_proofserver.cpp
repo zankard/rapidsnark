@@ -2,10 +2,9 @@
 #include <pistache/endpoint.h>
 #define CPPHTTPLIB_THREAD_POOL_COUNT 1
 #include <httplib.h>
-#include "logger.hpp"
-#include "proverapi.hpp"
+//#include "logger.hpp"
 #include "fullprover.hpp"
-#include "logging.hpp"
+//#include "logging.hpp"
 
 using namespace Pistache;
 using namespace Pistache::Rest;
@@ -34,8 +33,8 @@ int main(int argc, char **argv) {
 
 
     //CPlusPlusLogging::Logger::getInstance()->enaleLog();
-    CPlusPlusLogging::Logger::getInstance()->enableConsoleLogging();
-    LOG_INFO("Initializing server...");
+    //CPlusPlusLogging::Logger::getInstance()->enableConsoleLogging();
+    //LOG_INFO("Initializing server...");
     int port = std::stoi(argv[1]); // parse port
     std::string zkeyFileName = argv[2];
     std::string witnessBinaryPath = argv[3];
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
     });
 
     std::string serverReady("Server ready on port " + std::to_string(port) + "...");
-    LOG_INFO(serverReady);
+    //LOG_INFO(serverReady);
 
     svr.listen("0.0.0.0", port);
 
