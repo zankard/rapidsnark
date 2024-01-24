@@ -108,7 +108,8 @@ include_directories(
     ../build
     ../depends/ffiasm/c
     ../depends/json/single_include
-    ../depends/pistache/include)
+    ../depends/pistache/include
+    ../depends/cpp-httplib/)
 
 link_directories( ../depends/pistache/build )
 

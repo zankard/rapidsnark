@@ -7,14 +7,15 @@ using namespace Pistache;
 using json = nlohmann::json;
 
 
-void ProverAPI::postProve(const Rest::Request& request, Http::ResponseWriter response) {
+void ProverAPI::postProve(const httplib::Request &req, httplib::Response &res) {
     LOG_TRACE("starting prove");
     try {
-      json j = fullProver.prove(request.body());
+      json j = fullProver.prove(req.body);
       LOG_DEBUG(j.dump().c_str());
-      response.send(Http::Code::Ok, j.dump(), MIME(Application, Json));
+      res.set_content(j.dump(), "application/json");
     } catch (FullProverError e) {
-      response.send(e.code, errorToJson(e).dump(), MIME(Application, Json));
+      res.set_content(errorToJson(e).dump(), "application/json");
+      res.status = e.code;
     }
 }
 
