@@ -107,7 +107,10 @@ include_directories(
     ../src
     ../build
     ../depends/ffiasm/c
-    ../depends/json/single_include)
+    ../depends/json/single_include
+    ../depends/pistache/include)
+
+link_directories( ../depends/pistache/build )
 
 add_library(rapidsnarkStatic STATIC ${LIB_SOURCES})
 set_target_properties(rapidsnarkStatic PROPERTIES OUTPUT_NAME rapidsnark)
