@@ -110,7 +110,7 @@ json FullProver::prove(std::string input) {
     {
       std::stringstream ss;
       ss << "Time taken for witness generation: " << duration.count() << " milliseconds";
-      std::cout << "Time taken for witness generation: " << duration.count() << " milliseconds";
+      std::cout << "Time taken for witness generation: " << duration.count() << " milliseconds" << std::endl;
       LOG_INFO(ss.str().data());
     }
     
@@ -133,7 +133,7 @@ json FullProver::prove(std::string input) {
     {
       std::stringstream ss;
       ss << "Time taken for Groth16 prover: " << duration.count() << " milliseconds";
-      std::cout << "Time taken for Groth16 prover: " << duration.count() << " milliseconds";
+      std::cout << "Time taken for Groth16 prover: " << duration.count() << " milliseconds" << std::endl;
       LOG_INFO(ss.str().data());
     }
 

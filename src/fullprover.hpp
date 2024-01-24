@@ -9,7 +9,6 @@ using json = nlohmann::json;
 #include "groth16.hpp"
 #include "binfile_utils.hpp"
 #include "zkey_utils.hpp"
-#include <pistache/http_defs.h>
 #include <httplib.h>
 
 struct FullProverError {

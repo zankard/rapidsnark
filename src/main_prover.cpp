@@ -4,6 +4,8 @@
 #include <memory>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
+#include <pistache/router.h>
+#include <pistache/endpoint.h>
 
 #include <alt_bn128.hpp>
 #include "binfile_utils.hpp"
