@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
+#include <omp.h>
 
 #include <alt_bn128.hpp>
 #include "binfile_utils.hpp"
@@ -15,6 +16,7 @@
 #include "wtns_utils.hpp"
 #include "groth16.hpp"
 #include "fullprover.hpp"
+#include "logging.hpp"
 
 
 json errorToJson(FullProverError e) {
@@ -34,6 +36,9 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: proverServer <port> <path/to/circuit.zkey> <path/to/witness_binary_folder> \n";
         return -1;
     }
+
+    std::cout << "number of omp threads: " <<     omp_get_num_threads() << std::endl;
+
 
     int port = std::stoi(argv[1]); // parse port
     std::string zkeyFileName = argv[2];

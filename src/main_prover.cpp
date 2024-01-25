@@ -26,6 +26,8 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    std::cout << "number of omp threads: " <<     omp_get_num_threads() << std::endl;
+
     try {
         std::string zkeyFilename = argv[1];
         std::string witnessBinaryPath = argv[2];
