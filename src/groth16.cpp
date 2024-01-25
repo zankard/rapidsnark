@@ -111,6 +111,9 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
 
     #pragma omp parallel for
     for (u_int32_t i=0; i<domainSize; i++) {
+      if (i == 0) {
+        std::cout << "number of omp threads: " <<     omp_get_num_threads() << std::endl;
+      }
         E.fr.copy(a[i], E.fr.zero());
         E.fr.copy(b[i], E.fr.zero());
     }

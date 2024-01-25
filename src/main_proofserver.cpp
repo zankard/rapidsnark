@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    std::cout << "number of omp threads: " <<     omp_get_num_threads() << std::endl;
 
 
     int port = std::stoi(argv[1]); // parse port
