@@ -20,12 +20,12 @@ std::string getfilename(std::string path)
     return path.substr(0, dot_i);
 }
 
-FullProver::FullProver(std::string zkeyFileName, std::string _witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
+FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
-    circuit = getfilename(zkeyFileName);
-    zKey = BinFileUtils::openExisting(zkeyFileName, "zkey", 1);
+    circuit = getfilename(_zkeyFileName);
+    zKey = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
     zkHeader = ZKeyUtils::loadHeader(zKey.get());
 
     std::string proofStr;
@@ -60,7 +60,13 @@ FullProver::~FullProver() {
     mpz_clear(altBbn128r);
 }
 
-json FullProver::prove(std::string input) {
+ProverResponse::ProverResponse(ProverError _error) :
+  type(ProverResponseType::ERROR), raw_json(""), error(_error), metrics(ProverResponseMetrics()) {}
+
+ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _metrics) :
+  type(ProverResponseType::SUCCESS), raw_json(_raw_json), error(ProverError::NONE), metrics(_metrics) {}
+
+ProverResponse FullProver::prove(const char *input) {
     LOG_TRACE("FullProver::prove begin");
     LOG_DEBUG(input);
     std::lock_guard<std::mutex> guard(mtx);
@@ -85,8 +91,7 @@ json FullProver::prove(std::string input) {
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
     {
-        LOG_ERROR("Couldn't start witness generation binary.");
-        throw Witness_Generation_Binary_Problem;
+        return ProverResponse(ProverError::WITNESS_GENERATION_BINARY_PROBLEM);
     }
     while (fgets(buffer.data(), 128, pipe) != NULL) {
         // std::cout << "Reading..." << std::endl;
@@ -94,11 +99,10 @@ json FullProver::prove(std::string input) {
     }
     auto returnCode = pclose(pipe);
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto witness_generation_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     if (returnCode != 0) {
-        LOG_ERROR("The witness generation phase binary threw a nonzero exit code.");
-        throw Witness_Generation_Binary_Problem;
+        return ProverResponse(ProverError::WITNESS_GENERATION_BINARY_PROBLEM);
     }
 
     LOG_DEBUG(result);
@@ -109,8 +113,8 @@ json FullProver::prove(std::string input) {
     }
     {
       std::stringstream ss;
-      ss << "Time taken for witness generation: " << duration.count() << " milliseconds";
-      std::cout << "Time taken for witness generation: " << duration.count() << " milliseconds" << std::endl;
+      ss << "Time taken for witness generation: " << witness_generation_duration.count() << " milliseconds";
+      std::cout << "Time taken for witness generation: " << witness_generation_duration.count() << " milliseconds" << std::endl;
       LOG_INFO(ss.str().data());
     }
     
@@ -120,7 +124,7 @@ json FullProver::prove(std::string input) {
             
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0) {
         LOG_ERROR("The generated witness file uses a different curve than bn128, which is currently the only supported curve.");
-        throw Witness_Generation_Invalid_Curve;
+        return ProverResponse(ProverError::WITNESS_GENERATION_INVALID_CURVE);
     }
 
     AltBn128::FrElement *wtnsData = (AltBn128::FrElement *)wtns->getSectionData(2);
@@ -128,17 +132,21 @@ json FullProver::prove(std::string input) {
     start = std::chrono::high_resolution_clock::now();
     json proof = prover->prove(wtnsData)->toJson();
     end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto prover_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     {
       std::stringstream ss;
-      ss << "Time taken for Groth16 prover: " << duration.count() << " milliseconds";
-      std::cout << "Time taken for Groth16 prover: " << duration.count() << " milliseconds" << std::endl;
+      ss << "Time taken for Groth16 prover: " << prover_duration.count() << " milliseconds";
+      std::cout << "Time taken for Groth16 prover: " << prover_duration.count() << " milliseconds" << std::endl;
       LOG_INFO(ss.str().data());
     }
 
     LOG_TRACE("FullProver::prove end");
 
-    return proof;
+    ProverResponseMetrics metrics;
+    metrics.prover_time = prover_duration.count();
+    metrics.witness_generation_time = witness_generation_duration.count();
+
+    return ProverResponse(proof.dump().c_str(), metrics);
 }
 

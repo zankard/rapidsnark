@@ -28,8 +28,8 @@ int main(int argc, char **argv) {
 
 
     try {
-        std::string zkeyFilename = argv[1];
-        std::string witnessBinaryPath = argv[2];
+        const char *zkeyFilename = argv[1];
+        const char *witnessBinaryPath = argv[2];
         std::string inputFilename = argv[3];
         std::string proofFilename = argv[4];
 
@@ -41,11 +41,13 @@ int main(int argc, char **argv) {
         std::stringstream buffer;
         buffer << inputFile.rdbuf();
 
-        json j = fullProver.prove(buffer.str());
+        ProverResponse response = fullProver.prove(buffer.str().c_str());
+        std::cout << "Witness generation time: " << response.metrics.witness_generation_time << std::endl;
+        std::cout << "Prover time: " << response.metrics.prover_time << std::endl;
 
         std::ofstream proofFile;
         proofFile.open (proofFilename);
-        proofFile << j;
+        proofFile << response.raw_json;
         proofFile.close();
 
 

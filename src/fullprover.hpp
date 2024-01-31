@@ -11,33 +11,38 @@ using json = nlohmann::json;
 #include "zkey_utils.hpp"
 #include <httplib.h>
 
-struct FullProverError {
-  httplib::StatusCode code;
-  std::string message;
-  std::string details;
 
-  FullProverError(httplib::StatusCode _code, std::string _message, std::string _details) 
-    : code(_code), message(_message), details(_details) {}
+enum ProverResponseType {
+  SUCCESS,
+  ERROR
 };
 
-static const FullProverError Invalid_Witness_Input 
-  = FullProverError(
-        httplib::StatusCode::BadRequest_400,
-        "Invalid witness input",
-        "Invalid witness input"
-      );
-static const FullProverError Witness_Generation_Binary_Problem
-  = FullProverError(
-        httplib::StatusCode::InternalServerError_500,
-        "Witness generation problem",
-        "There was a problem running the witness generation phase binary."
-      );
-static const FullProverError Witness_Generation_Invalid_Curve
-  = FullProverError(
-        httplib::StatusCode::InternalServerError_500,
-        "Witness generation problem",
-        "The generated witness file uses a different curve than bn128, which is currently the only supported curve."
-      );
+enum ProverError {
+  NONE,
+  INVALID_INPUT,
+  WITNESS_GENERATION_BINARY_PROBLEM,
+  WITNESS_GENERATION_INVALID_CURVE
+};
+
+struct ProverResponseMetrics {
+  int prover_time;
+  int witness_generation_time;
+
+};
+
+struct ProverResponse {
+  ProverResponseType type;
+  const char *raw_json;
+  ProverError error;
+  ProverResponseMetrics metrics;
+
+  public:
+    ProverResponse(ProverError _error);
+    ProverResponse(const char *_raw_json, ProverResponseMetrics _metrics);
+
+};
+
+
 
 class FullProver {
     std::mutex mtx;
@@ -55,9 +60,9 @@ class FullProver {
 
 
 public: 
-    FullProver(std::string zkeyFileName, std::string _witnessBinaryPath);
+    FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath);
     ~FullProver();
-    json prove(std::string input);
+    ProverResponse prove(const char *input);
 
 
 };
