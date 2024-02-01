@@ -2,13 +2,8 @@
 #define FULLPROVER_H
 
 
-#include <mutex>
-#include "alt_bn128.hpp"
-#include "groth16.hpp"
-#include "binfile_utils.hpp"
-#include "zkey_utils.hpp"
-#include <httplib.h>
 
+class FullProverImpl;
 
 enum ProverResponseType {
   SUCCESS,
@@ -43,18 +38,8 @@ struct ProverResponse {
 
 
 class FullProver {
-    std::mutex mtx;
 
-    std::string circuit;
-    std::string witnessBinaryPath;
-
-    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
-    std::unique_ptr<ZKeyUtils::Header> zkHeader;
-    std::unique_ptr<BinFileUtils::BinFile> zKey;
-
-    mpz_t altBbn128r;
-
-
+  FullProverImpl *impl;
 
 
 public: 

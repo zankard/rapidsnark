@@ -12,6 +12,53 @@
 #include "logging.hpp"
 #include "wtns_utils.hpp"
 
+#include <mutex>
+#include "alt_bn128.hpp"
+#include "groth16.hpp"
+#include "binfile_utils.hpp"
+#include "zkey_utils.hpp"
+
+
+class FullProverImpl {
+    std::mutex mtx;
+
+    std::string circuit;
+    std::string witnessBinaryPath;
+
+    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
+    std::unique_ptr<ZKeyUtils::Header> zkHeader;
+    std::unique_ptr<BinFileUtils::BinFile> zKey;
+
+    mpz_t altBbn128r;
+
+  public:
+    FullProverImpl(const char *_zkeyFileName, const char *_witnessBinaryPath);
+    ~FullProverImpl();
+    ProverResponse prove(const char *input);
+};
+
+
+
+FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath) {
+  impl = new FullProverImpl(_zkeyFileName, _witnessBinaryPath);
+}
+FullProver::~FullProver() {
+  delete impl;
+}
+ProverResponse FullProver::prove(const char *input) {
+  return impl->prove(input);
+}
+
+
+
+
+
+
+
+
+
+// FULLPROVERIMPL
+
 
 std::string getfilename(std::string path)
 {
@@ -20,7 +67,7 @@ std::string getfilename(std::string path)
     return path.substr(0, dot_i);
 }
 
-FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
+FullProverImpl::FullProverImpl(const char *_zkeyFileName, const char *_witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
@@ -56,7 +103,7 @@ FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath
     );
 }
 
-FullProver::~FullProver() {
+FullProverImpl::~FullProverImpl() {
     mpz_clear(altBbn128r);
 }
 
@@ -66,8 +113,8 @@ ProverResponse::ProverResponse(ProverError _error) :
 ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _metrics) :
   type(ProverResponseType::SUCCESS), raw_json(_raw_json), error(ProverError::NONE), metrics(_metrics) {}
 
-ProverResponse FullProver::prove(const char *input) {
-    LOG_TRACE("FullProver::prove begin");
+ProverResponse FullProverImpl::prove(const char *input) {
+    LOG_TRACE("FullProverImpl::prove begin");
     LOG_DEBUG(input);
     std::lock_guard<std::mutex> guard(mtx);
     
@@ -141,7 +188,7 @@ ProverResponse FullProver::prove(const char *input) {
       LOG_INFO(ss.str().data());
     }
 
-    LOG_TRACE("FullProver::prove end");
+    LOG_TRACE("FullProverImpl::prove end");
 
     ProverResponseMetrics metrics;
     metrics.prover_time = prover_duration.count();
