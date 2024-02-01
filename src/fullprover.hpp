@@ -1,8 +1,6 @@
 #ifndef FULLPROVER_H
 #define FULLPROVER_H
 
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
 
 #include <mutex>
 #include "alt_bn128.hpp"
