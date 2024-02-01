@@ -10,8 +10,15 @@ enum ProverResponseType {
   ERROR
 };
 
+enum FullProverState {
+  OK,
+  ZKEY_FILE_LOAD_ERROR,
+  UNSUPPORTED_ZKEY_CURVE
+};
+
 enum ProverError {
   NONE,
+  PROVER_NOT_READY,
   INVALID_INPUT,
   WITNESS_GENERATION_BINARY_PROBLEM,
   WITNESS_GENERATION_INVALID_CURVE
@@ -40,6 +47,7 @@ struct ProverResponse {
 class FullProver {
 
   FullProverImpl *impl;
+  FullProverState state;
 
 
 public: 
