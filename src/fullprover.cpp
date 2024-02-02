@@ -11,6 +11,7 @@
 #include "fr.hpp"
 
 #include "logging.hpp"
+#include "nlohmann/json.hpp"
 #include "wtns_utils.hpp"
 
 #include <mutex>
@@ -22,7 +23,6 @@
 
 class FullProverImpl {
     bool unsupported_zkey_curve;
-    std::mutex mtx;
 
     std::string circuit;
     std::string witnessBinaryPath;
@@ -152,7 +152,6 @@ ProverResponse FullProverImpl::prove(const char *input) {
   std::cout << "starting prove" << std::endl;
     LOG_TRACE("FullProverImpl::prove begin");
     LOG_DEBUG(input);
-    std::lock_guard<std::mutex> guard(mtx);
     
     // Generate witness
     json j = json::parse(input);
