@@ -145,8 +145,13 @@ ProverResponse FullProverImpl::prove(const char *input) {
     LOG_TRACE("FullProverImpl::prove begin");
     LOG_DEBUG(input);
     
-    // Generate witness
-    json j = json::parse(input);
+    json j;
+    try {
+      // Generate witness
+      j = json::parse(input);
+    } catch (nlohmann::detail::exception e) {
+      return ProverResponse(ProverError::INVALID_INPUT);
+    }
 
     std::string inputFile("/tmp/rapidsnark_input.json");
     std::string witnessFile("/tmp/rapidsnark_witness.wtns");
