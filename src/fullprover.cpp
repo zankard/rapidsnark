@@ -60,6 +60,7 @@ FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath
 }
 
 FullProver::~FullProver() {
+  std::cout << "in FullProver destructor" << std::endl;
   delete impl;
 }
 
@@ -93,31 +94,22 @@ std::string getfilename(std::string path)
 FullProverImpl::FullProverImpl(const char *_zkeyFileName, const char *_witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
   std::cout << "in FullProverImpl constructor" << std::endl;
     mpz_init(altBbn128r);
-  std::cout << "in FullProverImpl constructor" << std::endl;
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
-  std::cout << "in FullProverImpl constructor" << std::endl;
 
-  std::cout << "in FullProverImpl constructor" << std::endl;
     circuit = getfilename(_zkeyFileName);
-  std::cout << "in FullProverImpl constructor" << std::endl;
     zKey = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
-  std::cout << "in FullProverImpl constructor" << std::endl;
     zkHeader = ZKeyUtils::loadHeader(zKey.get());
-  std::cout << "in FullProverImpl constructor" << std::endl;
 
-  std::cout << "in FullProverImpl constructor" << std::endl;
     std::string proofStr;
     if (mpz_cmp(zkHeader->rPrime, altBbn128r) != 0) {
       unsupported_zkey_curve = true;
         throw std::invalid_argument( "zkey curve not supported" );
     }
     
-  std::cout << "in FullProverImpl constructor" << std::endl;
     std::ostringstream ss1;
     ss1 << "circuit: " << circuit;
     LOG_DEBUG(ss1);
 
-  std::cout << "in FullProverImpl constructor" << std::endl;
     prover = Groth16::makeProver<AltBn128::Engine>(
         zkHeader->nVars,
         zkHeader->nPublic,
@@ -135,7 +127,6 @@ FullProverImpl::FullProverImpl(const char *_zkeyFileName, const char *_witnessBi
         zKey->getSectionData(8),    // pointsC
         zKey->getSectionData(9)     // pointsH1
     );
-  std::cout << "in FullProverImpl constructor" << std::endl;
 }
 
 FullProverImpl::~FullProverImpl() {
@@ -150,6 +141,7 @@ ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _met
 
 ProverResponse FullProverImpl::prove(const char *input) {
   std::cout << "starting prove" << std::endl;
+  std::cout << "1" << std::endl;
     LOG_TRACE("FullProverImpl::prove begin");
     LOG_DEBUG(input);
     
