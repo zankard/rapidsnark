@@ -70,7 +70,7 @@ CMakeLists.txt.user
 
 depends/gmp*
 
-build_*
+build_prover
 package*
 
 build/fq_asm.o
