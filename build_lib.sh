@@ -2,6 +2,9 @@
 
 set -e
 
+export CC=/usr/bin/clang
+export CXX=/usr/bin/clang++
+
 num_cpus=`grep -c ^processor /proc/cpuinfo`
 ./build_gmp.sh host || true
 mkdir -p build_prover
