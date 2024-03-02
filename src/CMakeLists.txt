@@ -108,10 +108,8 @@ include_directories(
     ../build
     ../depends/ffiasm/c
     ../depends/json/single_include
-    ../depends/pistache/include
     ../depends/cpp-httplib/)
 
-link_directories( ../depends/pistache/build )
 
 add_library(rapidsnarkStatic STATIC ${LIB_SOURCES})
 set_target_properties(rapidsnarkStatic PROPERTIES OUTPUT_NAME rapidsnark)
@@ -121,21 +119,16 @@ set_target_properties(rapidsnarkStaticFrFq PROPERTIES POSITION_INDEPENDENT_CODE 
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES OUTPUT_NAME rapidsnark-fr-fq)
 
 add_executable(prover main_prover.cpp)
-add_executable(proverServer main_proofserver.cpp)
 target_link_libraries(prover rapidsnarkStatic)
-target_link_libraries(proverServer rapidsnarkStatic)
-target_link_libraries(prover pistache)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
 if(USE_LOGGER OR NOT USE_OPENMP)
     target_link_libraries(prover pthread)
-    target_link_libraries(proverServer pthread)
 endif()
 
 if(USE_SODIUM)
     target_link_libraries(prover sodium)
-    target_link_libraries(proverServer sodium)
 endif()
 
 
@@ -147,7 +140,6 @@ if(OpenMP_CXX_FOUND)
 
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
         target_link_libraries(prover OpenMP::OpenMP_CXX)
-        target_link_libraries(proverServer OpenMP::OpenMP_CXX)
     endif()
 
 endif()
