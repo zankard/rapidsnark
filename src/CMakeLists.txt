@@ -117,31 +117,16 @@ add_library(rapidsnarkStaticFrFq STATIC ${LIB_SOURCES} ${FQ_SOURCES} ${FR_SOURCE
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES OUTPUT_NAME rapidsnark-fr-fq)
 
-add_executable(prover main_prover.cpp)
-target_link_libraries(prover rapidsnarkStatic)
+target_link_libraries(rapidsnarkStatic)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
-if(USE_LOGGER OR NOT USE_OPENMP)
-    target_link_libraries(prover pthread)
-endif()
-
-if(USE_SODIUM)
-    target_link_libraries(prover sodium)
-endif()
 
 
 if(OpenMP_CXX_FOUND)
-
     if(TARGET_PLATFORM MATCHES "android")
-        target_link_libraries(prover -static-openmp -fopenmp)
         target_link_libraries(rapidsnark -static-openmp -fopenmp)
-
-    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-        target_link_libraries(prover OpenMP::OpenMP_CXX)
     endif()
-
 endif()
 
 
-add_executable(test_prover test_prover.cpp)

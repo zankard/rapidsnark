@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 
 #include "fullprover.hpp"
@@ -43,16 +45,21 @@ std::string getFormattedTimestamp() {
     return ss.str();
 }
 
-void log_info(string msg) {
+void log(string level,string msg) {
 
   std::cout << "{\"timestamp\":\""
-    "2024-03-05T22:35:45.214573Z
-            << "\",\"level\":\"INFO\",\"message\":\""
             << getFormattedTimestamp()
+            << "\",\"level\":\""
+            << level
+            << "\",\"message\":\""
+            << msg 
             << "\",\"target\":\"prover_service::rapidsnark\"}"
             << std::endl;
-
 }
+
+void log_info(string msg) { log("INFO", msg); }
+void log_debug(string msg) { log("DEBUG", msg); }
+void log_error(string msg) { log("ERROR", msg); }
 
 
 class FullProverImpl {
@@ -174,28 +181,20 @@ ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _met
   type(ProverResponseType::SUCCESS), raw_json(_raw_json), error(ProverError::NONE), metrics(_metrics) {}
 
 ProverResponse FullProverImpl::prove(const char *witness_file_path) {
-  std::cout << "starting prove" << std::endl;
-  std::cout << "1" << std::endl;
-    LOG_TRACE("FullProverImpl::prove begin");
-    LOG_DEBUG(input);
-    
-    json j;
-    try {
-      j = json::parse(input);
-    } catch (nlohmann::detail::exception e) {
-      return ProverResponse(ProverError::INVALID_INPUT);
-    }
-  std::cout << "2" << std::endl;
+  log_info("FullProverImpl::prove begin");
+  log_debug(std::string(witness_file_path));
+
+
 
     std::string witnessFile(witness_file_path);
     
     // Load witness
     auto wtns = BinFileUtils::openExisting(witnessFile, "wtns", 2);
     auto wtnsHeader = WtnsUtils::loadHeader(wtns.get());
-  std::cout << "3" << std::endl;
+    log_info("Loaded witness file");
             
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0) {
-        LOG_ERROR("The generated witness file uses a different curve than bn128, which is currently the only supported curve.");
+        log_error("The generated witness file uses a different curve than bn128, which is currently the only supported curve.");
         return ProverResponse(ProverError::WITNESS_GENERATION_INVALID_CURVE);
     }
 
@@ -205,24 +204,23 @@ ProverResponse FullProverImpl::prove(const char *witness_file_path) {
     json proof = prover->prove(wtnsData)->toJson();
     auto end = std::chrono::high_resolution_clock::now();
     auto prover_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  std::cout << "4" << std::endl;
+    log_info("finished proof computation");
 
     {
       std::stringstream ss;
       ss << "Time taken for Groth16 prover: " << prover_duration.count() << " milliseconds";
       std::cout << "Time taken for Groth16 prover: " << prover_duration.count() << " milliseconds" << std::endl;
-      LOG_INFO(ss.str().data());
+      log_info(ss.str().data());
     }
 
-    LOG_TRACE("FullProverImpl::prove end");
 
+    log_info("constructing metrics struct");
     ProverResponseMetrics metrics;
     metrics.prover_time = prover_duration.count();
-    metrics.witness_generation_time = 0;
     
     const char *proof_raw = strdup(proof.dump().c_str());
-  std::cout << "5" << std::endl;
 
+    log_info("FullProverImpl::prove end");
     return ProverResponse(proof_raw, metrics);
 }
 
