@@ -20,14 +20,11 @@ enum ProverError {
   NONE,
   PROVER_NOT_READY,
   INVALID_INPUT,
-  WITNESS_GENERATION_BINARY_PROBLEM,
   WITNESS_GENERATION_INVALID_CURVE
 };
 
 struct ProverResponseMetrics {
   int prover_time;
-  int witness_generation_time;
-
 };
 
 struct ProverResponse {
@@ -51,7 +48,7 @@ class FullProver {
 
 
 public: 
-    FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath);
+    FullProver(const char *_zkeyFileName);
     ~FullProver();
     ProverResponse prove(const char *input);
 

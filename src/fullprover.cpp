@@ -21,11 +21,44 @@
 #include "zkey_utils.hpp"
 
 
+std::string getFormattedTimestamp() {
+    // Get the current time point
+    auto now = std::chrono::system_clock::now();
+    
+    // Convert the time point to a time_t object
+    std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
+
+    // Convert to std::tm for formatting
+    std::tm* now_tm = std::gmtime(&now_time_t);
+
+    // Extract milliseconds from the time point
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    // Create a stringstream to format the timestamp
+    std::stringstream ss;
+    ss << std::put_time(now_tm, "%Y-%m-%dT%H:%M:%S") << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    ss << "Z";
+
+    // Return the formatted timestamp as a string
+    return ss.str();
+}
+
+void log_info(string msg) {
+
+  std::cout << "{\"timestamp\":\""
+    "2024-03-05T22:35:45.214573Z
+            << "\",\"level\":\"INFO\",\"message\":\""
+            << getFormattedTimestamp()
+            << "\",\"target\":\"prover_service::rapidsnark\"}"
+            << std::endl;
+
+}
+
+
 class FullProverImpl {
     bool unsupported_zkey_curve;
 
     std::string circuit;
-    std::string witnessBinaryPath;
 
     std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
     std::unique_ptr<ZKeyUtils::Header> zkHeader;
@@ -34,18 +67,19 @@ class FullProverImpl {
     mpz_t altBbn128r;
 
   public:
-    FullProverImpl(const char *_zkeyFileName, const char *_witnessBinaryPath);
+    FullProverImpl(const char *_zkeyFileName);
     ~FullProverImpl();
     ProverResponse prove(const char *input);
 };
 
 
 
-FullProver::FullProver(const char *_zkeyFileName, const char *_witnessBinaryPath) {
+
+FullProver::FullProver(const char *_zkeyFileName) {
   std::cout << "in FullProver constructor" << std::endl;
   try {
     std::cout << "try" << std::endl;
-    impl = new FullProverImpl(_zkeyFileName, _witnessBinaryPath);
+    impl = new FullProverImpl(_zkeyFileName);
     state = FullProverState::OK;
   } catch (std::invalid_argument e) {
     std::cout << "caught" << std::endl;
@@ -91,7 +125,7 @@ std::string getfilename(std::string path)
     return path.substr(0, dot_i);
 }
 
-FullProverImpl::FullProverImpl(const char *_zkeyFileName, const char *_witnessBinaryPath) : witnessBinaryPath(_witnessBinaryPath) {
+FullProverImpl::FullProverImpl(const char *_zkeyFileName) {
   std::cout << "in FullProverImpl constructor" << std::endl;
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
@@ -139,7 +173,7 @@ ProverResponse::ProverResponse(ProverError _error) :
 ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _metrics) :
   type(ProverResponseType::SUCCESS), raw_json(_raw_json), error(ProverError::NONE), metrics(_metrics) {}
 
-ProverResponse FullProverImpl::prove(const char *input) {
+ProverResponse FullProverImpl::prove(const char *witness_file_path) {
   std::cout << "starting prove" << std::endl;
   std::cout << "1" << std::endl;
     LOG_TRACE("FullProverImpl::prove begin");
@@ -147,16 +181,13 @@ ProverResponse FullProverImpl::prove(const char *input) {
     
     json j;
     try {
-      // Generate witness
       j = json::parse(input);
     } catch (nlohmann::detail::exception e) {
       return ProverResponse(ProverError::INVALID_INPUT);
     }
   std::cout << "2" << std::endl;
 
-    std::string inputFile("/tmp/rapidsnark_input.json");
-    std::string witnessFile("/tmp/rapidsnark_witness.wtns");
-    
+    std::string witnessFile(witness_file_path);
     
     // Load witness
     auto wtns = BinFileUtils::openExisting(witnessFile, "wtns", 2);
