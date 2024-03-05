@@ -54,49 +54,33 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
   std::cout << "domain size: " << domainSize << endl;
   std::cout << "num coeffs: " << nCoefs << endl;
     LOG_TRACE("OPENMP Start Multiexp A");
-    auto start = std::chrono::high_resolution_clock::now();
     uint32_t sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
     E.g1.multiMulByScalar(pi_a, pointsA, (uint8_t *)wtns, sW, nVars);
     std::ostringstream ss2;
     ss2 << "pi_a: " << E.g1.toString(pi_a);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     LOG_DEBUG(ss2);
-    std::cout << " Multiexp A time: " << duration.count() << std::endl;
 
     LOG_TRACE("OPENMP Start Multiexp B1");
-    start = std::chrono::high_resolution_clock::now();
     typename Engine::G1Point pib1;
     E.g1.multiMulByScalar(pib1, pointsB1, (uint8_t *)wtns, sW, nVars);
     std::ostringstream ss3;
     ss3 << "pib1: " << E.g1.toString(pib1);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     LOG_DEBUG(ss3);
-    std::cout << " Multiexp B1 time: " << duration.count() << std::endl;
 
     LOG_TRACE("OPENMP Start Multiexp B2");
-    start = std::chrono::high_resolution_clock::now();
     typename Engine::G2Point pi_b;
     E.g2.multiMulByScalar(pi_b, pointsB2, (uint8_t *)wtns, sW, nVars);
     std::ostringstream ss4;
     ss4 << "pi_b: " << E.g2.toString(pi_b);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     LOG_DEBUG(ss4);
-    std::cout << " Multiexp B2 time: " << duration.count() << std::endl;
 
     LOG_TRACE("OPENMP Start Multiexp C");
-    start = std::chrono::high_resolution_clock::now();
     typename Engine::G1Point pi_c;
     E.g1.multiMulByScalar(pi_c, pointsC, (uint8_t *)((uint64_t)wtns + (nPublic +1)*sW), sW, nVars-nPublic-1);
     std::ostringstream ss5;
     ss5 << "pi_c: " << E.g1.toString(pi_c);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     LOG_DEBUG(ss5);
-    std::cout << " Multiexp C time: " << duration.count() << std::endl;
 #else
     LOG_TRACE("Start Multiexp A");
     uint32_t sW = sizeof(wtns[0]);
@@ -131,9 +115,6 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
 
     #pragma omp parallel for
     for (u_int32_t i=0; i<domainSize; i++) {
-      if (i == 0) {
-        std::cout << "number of omp threads: " <<     omp_get_num_threads() << std::endl;
-      }
         E.fr.copy(a[i], E.fr.zero());
         E.fr.copy(b[i], E.fr.zero());
     }
@@ -180,7 +161,6 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
         );
     }
 
-    start = std::chrono::high_resolution_clock::now();
     LOG_TRACE("Initializing fft");
     u_int32_t domainPower = fft->log2(domainSize);
 
@@ -239,9 +219,6 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     LOG_TRACE("c After fft:");
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "FFTs time: " << duration.count() << std::endl;
 
     LOG_TRACE("Start ABC");
     #pragma omp parallel for
@@ -258,15 +235,11 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     delete [] c;
 
     LOG_TRACE("Start Multiexp H");
-    start = std::chrono::high_resolution_clock::now();
     typename Engine::G1Point pih;
     E.g1.multiMulByScalar(pih, pointsH, (uint8_t *)a, sizeof(a[0]), domainSize);
     std::ostringstream ss1;
     ss1 << "pih: " << E.g1.toString(pih);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     LOG_DEBUG(ss1);
-    std::cout << " Multiexp H time: " << duration.count() << std::endl;
 
     delete [] a;
 

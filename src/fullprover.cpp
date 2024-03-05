@@ -152,54 +152,16 @@ ProverResponse FullProverImpl::prove(const char *input) {
     } catch (nlohmann::detail::exception e) {
       return ProverResponse(ProverError::INVALID_INPUT);
     }
+  std::cout << "2" << std::endl;
 
     std::string inputFile("/tmp/rapidsnark_input.json");
     std::string witnessFile("/tmp/rapidsnark_witness.wtns");
     
-    std::ofstream file(inputFile);
-    file << j;
-    file.close();
-
-    std::string command(witnessBinaryPath + "/" + circuit + " " + inputFile + " " + witnessFile);
-    LOG_TRACE(command);
-    std::array<char, 128> buffer;
-    std::string result;
-
-    auto start = std::chrono::high_resolution_clock::now();
-    // std::cout << "Opening reading pipe" << std::endl;
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe)
-    {
-        return ProverResponse(ProverError::WITNESS_GENERATION_BINARY_PROBLEM);
-    }
-    while (fgets(buffer.data(), 128, pipe) != NULL) {
-        // std::cout << "Reading..." << std::endl;
-        result += buffer.data();
-    }
-    auto returnCode = pclose(pipe);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto witness_generation_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-    if (returnCode != 0) {
-        return ProverResponse(ProverError::WITNESS_GENERATION_BINARY_PROBLEM);
-    }
-
-    LOG_DEBUG(result);
-    {
-      std::stringstream ss;
-      ss << "return code: " << returnCode;
-      LOG_DEBUG(ss.str().data());
-    }
-    {
-      std::stringstream ss;
-      ss << "Time taken for witness generation: " << witness_generation_duration.count() << " milliseconds";
-      std::cout << "Time taken for witness generation: " << witness_generation_duration.count() << " milliseconds" << std::endl;
-      LOG_INFO(ss.str().data());
-    }
     
     // Load witness
     auto wtns = BinFileUtils::openExisting(witnessFile, "wtns", 2);
     auto wtnsHeader = WtnsUtils::loadHeader(wtns.get());
+  std::cout << "3" << std::endl;
             
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0) {
         LOG_ERROR("The generated witness file uses a different curve than bn128, which is currently the only supported curve.");
@@ -208,10 +170,11 @@ ProverResponse FullProverImpl::prove(const char *input) {
 
     AltBn128::FrElement *wtnsData = (AltBn128::FrElement *)wtns->getSectionData(2);
 
-    start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     json proof = prover->prove(wtnsData)->toJson();
-    end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     auto prover_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "4" << std::endl;
 
     {
       std::stringstream ss;
@@ -224,9 +187,10 @@ ProverResponse FullProverImpl::prove(const char *input) {
 
     ProverResponseMetrics metrics;
     metrics.prover_time = prover_duration.count();
-    metrics.witness_generation_time = witness_generation_duration.count();
+    metrics.witness_generation_time = 0;
     
     const char *proof_raw = strdup(proof.dump().c_str());
+  std::cout << "5" << std::endl;
 
     return ProverResponse(proof_raw, metrics);
 }
