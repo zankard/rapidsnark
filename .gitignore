@@ -81,3 +81,5 @@ build/fr_asm.o
 # clangd stuff
 .cache
 
+
+build_prover_*
