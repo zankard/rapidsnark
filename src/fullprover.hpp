@@ -50,7 +50,7 @@ class FullProver {
 public: 
     FullProver(const char *_zkeyFileName);
     ~FullProver();
-    ProverResponse prove(const char *input);
+    ProverResponse prove(const char *input) const;
 
 
 };

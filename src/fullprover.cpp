@@ -76,7 +76,7 @@ class FullProverImpl {
   public:
     FullProverImpl(const char *_zkeyFileName);
     ~FullProverImpl();
-    ProverResponse prove(const char *input);
+    ProverResponse prove(const char *input) const;
 };
 
 
@@ -105,7 +105,7 @@ FullProver::~FullProver() {
   delete impl;
 }
 
-ProverResponse FullProver::prove(const char *input) {
+ProverResponse FullProver::prove(const char *input) const {
   std::cout << "in FullProver::prove" << std::endl;
   if (state != FullProverState::OK) {
     return ProverResponse(ProverError::PROVER_NOT_READY);
@@ -180,7 +180,7 @@ ProverResponse::ProverResponse(ProverError _error) :
 ProverResponse::ProverResponse(const char *_raw_json, ProverResponseMetrics _metrics) :
   type(ProverResponseType::SUCCESS), raw_json(_raw_json), error(ProverError::NONE), metrics(_metrics) {}
 
-ProverResponse FullProverImpl::prove(const char *witness_file_path) {
+ProverResponse FullProverImpl::prove(const char *witness_file_path) const {
   log_info("FullProverImpl::prove begin");
   log_debug(std::string(witness_file_path));
 
