@@ -1,5 +1,10 @@
-link_libraries(gmp)
-
+if (ARCH MATCHES "arm64")
+  link_libraries(${GMP_LIB})
+  add_definitions(${GMP_DEFINIONS})
+else()
+  link_libraries(gmp)
+endif()
+ 
 
 if(USE_ASM)
     if(ARCH MATCHES "arm64")
@@ -35,7 +40,8 @@ set(FR_SOURCES
 
 if(USE_ASM)
     if(ARCH MATCHES "arm64")
-        set(FR_SOURCES ${FR_SOURCES} ../build/fr_raw_arm64.s ../build/fr_raw_generic.cpp ../build/fr_generic.cpp)
+
+       set(FR_SOURCES ${FR_SOURCES} ../build/fr_raw_arm64.s ../build/fr_raw_generic.cpp ../build/fr_generic.cpp)
     elseif(ARCH MATCHES "x86_64")
         set(FR_SOURCES ${FR_SOURCES} ../build/fr_asm.o)
     endif()
