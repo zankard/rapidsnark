@@ -1,13 +1,14 @@
+#include <fcntl.h>
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <system_error>
-#include <stdexcept>
+#include <unistd.h>
 
 #include "fileloader.hpp"
 
-namespace BinFileUtils {
+namespace BinFileUtils
+{
 
 FileLoader::FileLoader(const std::string& fileName)
 {
@@ -17,8 +18,8 @@ FileLoader::FileLoader(const std::string& fileName)
     if (fd == -1)
         throw std::system_error(errno, std::generic_category(), "open");
 
-
-    if (fstat(fd, &sb) == -1) {          /* To obtain file size */
+    if (fstat(fd, &sb) == -1)
+    { /* To obtain file size */
         close(fd);
         throw std::system_error(errno, std::generic_category(), "fstat");
     }
@@ -34,4 +35,4 @@ FileLoader::~FileLoader()
     close(fd);
 }
 
-} // Namespace
+} // namespace BinFileUtils

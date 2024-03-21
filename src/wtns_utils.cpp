@@ -1,16 +1,15 @@
 #include "wtns_utils.hpp"
 
-namespace WtnsUtils {
+namespace WtnsUtils
+{
 
-Header::Header() {
-}
+Header::Header() {}
 
-Header::~Header() {
-    mpz_clear(prime);
-}
+Header::~Header() { mpz_clear(prime); }
 
-std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f) {
-    Header *h = new Header();
+std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile* f)
+{
+    Header* h = new Header();
     f->startReadSection(1);
 
     h->n8 = f->readU32LE();
@@ -24,4 +23,4 @@ std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f) {
     return std::unique_ptr<Header>(h);
 }
 
-} // NAMESPACE
+} // namespace WtnsUtils

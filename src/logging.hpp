@@ -3,19 +3,19 @@
 
 #ifdef USE_LOGGER
 
-#include "logger.hpp"
+#    include "logger.hpp"
 
 using namespace CPlusPlusLogging;
 
 #else
 
-#define LOG_ERROR(x)
-#define LOG_ALARM(x)
-#define LOG_ALWAYS(x)
-#define LOG_INFO(x)
-#define LOG_BUFFER(x)
-#define LOG_TRACE(x)
-#define LOG_DEBUG(x)
+#    define LOG_ERROR(x)
+#    define LOG_ALARM(x)
+#    define LOG_ALWAYS(x)
+#    define LOG_INFO(x)
+#    define LOG_BUFFER(x)
+#    define LOG_TRACE(x)
+#    define LOG_DEBUG(x)
 
 #endif // USE_LOGGER
 

@@ -1,4 +1,2 @@
-#include <httplib.h>
 #include "fullprover.hpp"
-
-
+#include <httplib.h>

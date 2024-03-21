@@ -5,21 +5,23 @@
 
 #include "binfile_utils.hpp"
 
-namespace WtnsUtils {
+namespace WtnsUtils
+{
 
-    class Header {
-    public:
-        u_int32_t n8;
-        mpz_t prime;
+class Header
+{
+public:
+    u_int32_t n8;
+    mpz_t     prime;
 
-        u_int32_t nVars;
+    u_int32_t nVars;
 
-        Header();
-        ~Header();
-    };
+    Header();
+    ~Header();
+};
 
-    std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f);
+std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile* f);
 
-}
+} // namespace WtnsUtils
 
 #endif // ZKEY_UTILS_H

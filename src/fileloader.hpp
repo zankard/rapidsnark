@@ -4,7 +4,8 @@
 #include <cstddef>
 #include <string>
 
-namespace BinFileUtils {
+namespace BinFileUtils
+{
 
 class FileLoader
 {
@@ -16,11 +17,11 @@ public:
     size_t dataSize() const { return size; }
 
 private:
-    void*   addr;
-    size_t  size;
-    int     fd;
+    void*  addr;
+    size_t size;
+    int    fd;
 };
 
-}
+} // namespace BinFileUtils
 
 #endif // FILELOADER_HPP
