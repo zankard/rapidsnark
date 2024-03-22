@@ -173,8 +173,9 @@ std::unique_ptr<BinFile> openExisting(std::string filename, std::string type,
 
     FileLoader fileLoader(filename);
 
-    return std::unique_ptr<BinFile>(new BinFile(
-        fileLoader.dataBuffer(), fileLoader.dataSize(), type, maxVersion));
+    // There was a possible memory leak
+    return std::make_unique<BinFile>(fileLoader.dataBuffer(),
+                                     fileLoader.dataSize(), type, maxVersion);
 }
 
 } // namespace BinFileUtils

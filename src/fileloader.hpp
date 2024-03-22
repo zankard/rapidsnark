@@ -1,5 +1,4 @@
-#ifndef FILELOADER_HPP
-#define FILELOADER_HPP
+#pragma once
 
 #include <cstddef>
 #include <string>
@@ -17,11 +16,9 @@ public:
     size_t dataSize() const { return size; }
 
 private:
-    void*  addr;
-    size_t size;
-    int    fd;
+    void*       addr;
+    std::size_t size;
+    int         fd;
 };
 
 } // namespace BinFileUtils
-
-#endif // FILELOADER_HPP

@@ -1,5 +1,4 @@
-#ifndef BINFILE_UTILS_H
-#define BINFILE_UTILS_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -64,5 +63,3 @@ public:
 std::unique_ptr<BinFile> openExisting(std::string filename, std::string type,
                                       uint32_t maxVersion);
 } // namespace BinFileUtils
-
-#endif // BINFILE_UTILS_H

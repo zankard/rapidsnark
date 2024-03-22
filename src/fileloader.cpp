@@ -16,7 +16,9 @@ FileLoader::FileLoader(const std::string& fileName)
 
     fd = open(fileName.c_str(), O_RDONLY);
     if (fd == -1)
+    {
         throw std::system_error(errno, std::generic_category(), "open");
+    }
 
     if (fstat(fd, &sb) == -1)
     { /* To obtain file size */
