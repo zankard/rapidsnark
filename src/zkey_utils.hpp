@@ -1,5 +1,4 @@
-#ifndef ZKEY_UTILS_H
-#define ZKEY_UTILS_H
+#pragma once
 
 #include <gmp.h>
 #include <memory>
@@ -34,7 +33,6 @@ public:
     ~Header();
 };
 
-std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile* f);
-} // namespace ZKeyUtils
+std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file);
 
-#endif // ZKEY_UTILS_H
+} // namespace ZKeyUtils

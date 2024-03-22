@@ -13,43 +13,44 @@ Header::~Header()
     mpz_clear(rPrime);
 }
 
-std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile* f)
+std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file)
 {
-    auto h = new Header();
+    // A memory leak was here
+    auto h = std::make_unique<Header>();
 
-    f->startReadSection(1);
-    uint32_t protocol = f->readU32LE();
+    bin_file.startReadSection(1);
+    uint32_t protocol = bin_file.readU32LE();
     if (protocol != 1)
     {
         throw std::invalid_argument("zkey file is not groth16");
     }
-    f->endReadSection();
+    bin_file.endReadSection();
 
-    f->startReadSection(2);
+    bin_file.startReadSection(2);
 
-    h->n8q = f->readU32LE();
+    h->n8q = bin_file.readU32LE();
     mpz_init(h->qPrime);
-    mpz_import(h->qPrime, h->n8q, -1, 1, -1, 0, f->read(h->n8q));
+    mpz_import(h->qPrime, h->n8q, -1, 1, -1, 0, bin_file.read(h->n8q));
 
-    h->n8r = f->readU32LE();
+    h->n8r = bin_file.readU32LE();
     mpz_init(h->rPrime);
-    mpz_import(h->rPrime, h->n8r, -1, 1, -1, 0, f->read(h->n8r));
+    mpz_import(h->rPrime, h->n8r, -1, 1, -1, 0, bin_file.read(h->n8r));
 
-    h->nVars      = f->readU32LE();
-    h->nPublic    = f->readU32LE();
-    h->domainSize = f->readU32LE();
+    h->nVars      = bin_file.readU32LE();
+    h->nPublic    = bin_file.readU32LE();
+    h->domainSize = bin_file.readU32LE();
 
-    h->vk_alpha1 = f->read(h->n8q * 2);
-    h->vk_beta1  = f->read(h->n8q * 2);
-    h->vk_beta2  = f->read(h->n8q * 4);
-    h->vk_gamma2 = f->read(h->n8q * 4);
-    h->vk_delta1 = f->read(h->n8q * 2);
-    h->vk_delta2 = f->read(h->n8q * 4);
-    f->endReadSection();
+    h->vk_alpha1 = bin_file.read(h->n8q * 2);
+    h->vk_beta1  = bin_file.read(h->n8q * 2);
+    h->vk_beta2  = bin_file.read(h->n8q * 4);
+    h->vk_gamma2 = bin_file.read(h->n8q * 4);
+    h->vk_delta1 = bin_file.read(h->n8q * 2);
+    h->vk_delta2 = bin_file.read(h->n8q * 4);
+    bin_file.endReadSection();
 
-    h->nCoefs = f->getSectionSize(4) / (12 + h->n8r);
+    h->nCoefs = bin_file.getSectionSize(4) / (12 + h->n8r);
 
-    return std::unique_ptr<Header>(h);
+    return h;
 }
 
 } // namespace ZKeyUtils

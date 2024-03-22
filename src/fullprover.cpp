@@ -141,7 +141,7 @@ FullProverImpl::FullProverImpl(const char* _zkeyFileName)
     {
         circuit  = getfilename(_zkeyFileName);
         zKey     = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
-        zkHeader = ZKeyUtils::loadHeader(zKey.get());
+        zkHeader = ZKeyUtils::loadHeader(*zKey.get());
 
         std::string proofStr;
         if (mpz_cmp(zkHeader->rPrime, altBbn128r) != 0)

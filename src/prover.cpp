@@ -60,7 +60,7 @@ unsigned long CalcPublicBufferSize(const void*   zkey_buffer,
     try
     {
         BinFileUtils::BinFile zkey(zkey_buffer, zkey_size, "zkey", 1);
-        auto                  zkeyHeader = ZKeyUtils::loadHeader(&zkey);
+        auto                  zkeyHeader = ZKeyUtils::loadHeader(zkey);
         return PublicBufferMinSize(zkeyHeader->nPublic);
     }
     catch (...)
@@ -79,7 +79,7 @@ int groth16_prover(const void* zkey_buffer, unsigned long zkey_size,
     try
     {
         BinFileUtils::BinFile zkey(zkey_buffer, zkey_size, "zkey", 1);
-        auto                  zkeyHeader = ZKeyUtils::loadHeader(&zkey);
+        auto                  zkeyHeader = ZKeyUtils::loadHeader(zkey);
 
         BinFileUtils::BinFile wtns(wtns_buffer, wtns_size, "wtns", 2);
         auto                  wtnsHeader = WtnsUtils::loadHeader(&wtns);
