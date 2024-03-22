@@ -38,12 +38,12 @@ BinFile::BinFile(const void* fileData, size_t fileSize,
             " and it is " + std::to_string(version));
     }
 
-    u_int32_t nSections = readU32LE();
+    std::uint32_t nSections = readU32LE();
 
-    for (u_int32_t i = 0; i < nSections; i++)
+    for (std::uint32_t i = 0; i < nSections; i++)
     {
-        u_int32_t sType = readU32LE();
-        u_int64_t sSize = readU64LE();
+        std::uint32_t sType = readU32LE();
+        u_int64_t     sSize = readU64LE();
 
         if (sections.find(sType) == sections.end())
         {
@@ -56,12 +56,13 @@ BinFile::BinFile(const void* fileData, size_t fileSize,
     }
 
     pos            = 0;
-    readingSection = NULL;
+    readingSection = nullptr;
 }
 
 // BinFile::~BinFile() { free(addr); }
 
-void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos)
+void BinFile::startReadSection(std::uint32_t sectionId,
+                               std::uint32_t sectionPos)
 {
 
     if (sections.find(sectionId) == sections.end())
@@ -78,7 +79,7 @@ void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos)
                                    std::to_string(sectionPos));
     }
 
-    if (readingSection != NULL)
+    if (readingSection != nullptr)
     {
         throw new std::range_error("Already reading a section");
     }
@@ -100,7 +101,7 @@ void BinFile::endReadSection(bool check)
     readingSection = nullptr;
 }
 
-void* BinFile::getSectionData(u_int32_t sectionId, u_int32_t sectionPos)
+void* BinFile::getSectionData(std::uint32_t sectionId, std::uint32_t sectionPos)
 {
 
     if (sections.find(sectionId) == sections.end())
@@ -120,7 +121,8 @@ void* BinFile::getSectionData(u_int32_t sectionId, u_int32_t sectionPos)
     return sections[sectionId][sectionPos].start;
 }
 
-u_int64_t BinFile::getSectionSize(u_int32_t sectionId, u_int32_t sectionPos)
+u_int64_t BinFile::getSectionSize(std::uint32_t sectionId,
+                                  std::uint32_t sectionPos)
 {
 
     if (sections.find(sectionId) == sections.end())
@@ -140,10 +142,10 @@ u_int64_t BinFile::getSectionSize(u_int32_t sectionId, u_int32_t sectionPos)
     return sections[sectionId][sectionPos].size;
 }
 
-u_int32_t BinFile::readU32LE()
+std::uint32_t BinFile::readU32LE()
 {
     assert(pos + 4 <= size);
-    u_int32_t res;
+    std::uint32_t res;
     std::memcpy(&res, data() + pos, 4);
     pos += 4;
     return res;
