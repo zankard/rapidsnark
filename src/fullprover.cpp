@@ -61,7 +61,7 @@ void log_error(string msg) { log("ERROR", msg); }
 
 class FullProverImpl
 {
-    bool unsupported_zkey_curve;
+    // bool unsupported_zkey_curve; never used
 
     std::string circuit;
 
@@ -79,36 +79,34 @@ public:
 
 FullProver::FullProver(const char* _zkeyFileName)
 {
-    std::cout << "in FullProver constructor" << std::endl;
+    // std::cout << "in FullProver constructor" << std::endl;
     try
     {
-        std::cout << "try" << std::endl;
-        impl  = new FullProverImpl(_zkeyFileName);
+        // std::cout << "try" << std::endl;
+        impl  = std::make_unique<FullProverImpl>(_zkeyFileName);
         state = FullProverState::OK;
     }
     catch (std::invalid_argument e)
     {
-        std::cout << "caught" << std::endl;
+        // std::cout << "caught" << std::endl;
         state = FullProverState::UNSUPPORTED_ZKEY_CURVE;
-        impl  = 0;
     }
     catch (std::system_error e)
     {
-        std::cout << "caught 2" << std::endl;
+        // std::cout << "caught 2" << std::endl;
         state = FullProverState::ZKEY_FILE_LOAD_ERROR;
-        impl  = 0;
     }
 }
 
-FullProver::~FullProver()
-{
-    std::cout << "in FullProver destructor" << std::endl;
-    delete impl;
-}
+// FullProver::~FullProver()
+// {
+//     std::cout << "in FullProver destructor" << std::endl;
+//     delete impl;
+// }
 
 ProverResponse FullProver::prove(const char* input) const
 {
-    std::cout << "in FullProver::prove" << std::endl;
+    // std::cout << "in FullProver::prove" << std::endl;
     if (state != FullProverState::OK)
     {
         return ProverResponse(ProverError::PROVER_NOT_READY);
@@ -137,39 +135,49 @@ FullProverImpl::FullProverImpl(const char* _zkeyFileName)
                 "186575808495617",
                 10);
 
-    circuit  = getfilename(_zkeyFileName);
-    zKey     = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
-    zkHeader = ZKeyUtils::loadHeader(zKey.get());
-
-    std::string proofStr;
-    if (mpz_cmp(zkHeader->rPrime, altBbn128r) != 0)
+    // Need to free memory initalized by mpz_init in the case we throw
+    // Not the best solution at all, but easy to add.
+    try
     {
-        unsupported_zkey_curve = true;
-        throw std::invalid_argument("zkey curve not supported");
+        circuit  = getfilename(_zkeyFileName);
+        zKey     = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
+        zkHeader = ZKeyUtils::loadHeader(zKey.get());
+
+        std::string proofStr;
+        if (mpz_cmp(zkHeader->rPrime, altBbn128r) != 0)
+        {
+            // unsupported_zkey_curve = true;
+            throw std::invalid_argument("zkey curve not supported");
+        }
+
+        std::ostringstream ss1;
+        ss1 << "circuit: " << circuit;
+        LOG_DEBUG(ss1);
+
+        prover = Groth16::makeProver<AltBn128::Engine>(
+            zkHeader->nVars, zkHeader->nPublic, zkHeader->domainSize,
+            zkHeader->nCoefs, zkHeader->vk_alpha1, zkHeader->vk_beta1,
+            zkHeader->vk_beta2, zkHeader->vk_delta1, zkHeader->vk_delta2,
+            zKey->getSectionData(4), // Coefs
+            zKey->getSectionData(5), // pointsA
+            zKey->getSectionData(6), // pointsB1
+            zKey->getSectionData(7), // pointsB2
+            zKey->getSectionData(8), // pointsC
+            zKey->getSectionData(9)  // pointsH1
+        );
     }
-
-    std::ostringstream ss1;
-    ss1 << "circuit: " << circuit;
-    LOG_DEBUG(ss1);
-
-    prover = Groth16::makeProver<AltBn128::Engine>(
-        zkHeader->nVars, zkHeader->nPublic, zkHeader->domainSize,
-        zkHeader->nCoefs, zkHeader->vk_alpha1, zkHeader->vk_beta1,
-        zkHeader->vk_beta2, zkHeader->vk_delta1, zkHeader->vk_delta2,
-        zKey->getSectionData(4), // Coefs
-        zKey->getSectionData(5), // pointsA
-        zKey->getSectionData(6), // pointsB1
-        zKey->getSectionData(7), // pointsB2
-        zKey->getSectionData(8), // pointsC
-        zKey->getSectionData(9)  // pointsH1
-    );
+    catch (...)
+    {
+        mpz_clear(altBbn128r);
+        throw;
+    }
 }
 
 FullProverImpl::~FullProverImpl() { mpz_clear(altBbn128r); }
 
 ProverResponse::ProverResponse(ProverError _error)
     : type(ProverResponseType::ERROR)
-    , raw_json("")
+    , raw_json(ProverResponse::empty_string)
     , error(_error)
     , metrics(ProverResponseMetrics())
 {
@@ -183,6 +191,8 @@ ProverResponse::ProverResponse(const char*           _raw_json,
     , metrics(_metrics)
 {
 }
+
+char const* const ProverResponse::empty_string = "";
 
 ProverResponse FullProverImpl::prove(const char* witness_file_path) const
 {

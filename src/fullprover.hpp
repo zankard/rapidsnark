@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdlib>
+#include <memory>
+
 class FullProverImpl;
 
 enum ProverResponseType
@@ -31,23 +34,36 @@ struct ProverResponseMetrics
 struct ProverResponse
 {
     ProverResponseType    type;
-    const char*           raw_json;
+    char const*           raw_json;
     ProverError           error;
     ProverResponseMetrics metrics;
+
+private:
+    static char const* const empty_string;
 
 public:
     ProverResponse(ProverError _error);
     ProverResponse(const char* _raw_json, ProverResponseMetrics _metrics);
+
+    ~ProverResponse()
+    {
+        if (raw_json != empty_string) // Was allocated by strdup(),
+                                      // and needs to be freed
+        {
+            // Not a pretty solution, but works
+            free(const_cast<char*>(raw_json));
+        }
+    }
 };
 
 class FullProver
 {
-
-    FullProverImpl* impl;
-    FullProverState state;
+    std::unique_ptr<FullProverImpl> impl;
+    FullProverState                 state;
 
 public:
+    FullProver() = delete;
     FullProver(const char* _zkeyFileName);
-    ~FullProver();
+    // ~FullProver();
     ProverResponse prove(const char* input) const;
 };
