@@ -82,7 +82,7 @@ int groth16_prover(const void* zkey_buffer, unsigned long zkey_size,
         auto                  zkeyHeader = ZKeyUtils::loadHeader(zkey);
 
         BinFileUtils::BinFile wtns(wtns_buffer, wtns_size, "wtns", 2);
-        auto                  wtnsHeader = WtnsUtils::loadHeader(&wtns);
+        auto                  wtnsHeader = WtnsUtils::loadHeader(wtns);
 
         if (zkeyHeader->nVars != wtnsHeader->nVars)
         {

@@ -7,20 +7,21 @@ Header::Header() {}
 
 Header::~Header() { mpz_clear(prime); }
 
-std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile* f)
+std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file)
 {
-    Header* h = new Header();
-    f->startReadSection(1);
-
-    h->n8 = f->readU32LE();
+    auto h = std::make_unique<Header>();
     mpz_init(h->prime);
-    mpz_import(h->prime, h->n8, -1, 1, -1, 0, f->read(h->n8));
 
-    h->nVars = f->readU32LE();
+    bin_file.startReadSection(1);
 
-    f->endReadSection();
+    h->n8 = bin_file.readU32LE();
+    mpz_import(h->prime, h->n8, -1, 1, -1, 0, bin_file.read(h->n8));
 
-    return std::unique_ptr<Header>(h);
+    h->nVars = bin_file.readU32LE();
+
+    bin_file.endReadSection();
+
+    return h;
 }
 
 } // namespace WtnsUtils

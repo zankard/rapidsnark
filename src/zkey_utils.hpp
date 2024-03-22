@@ -12,15 +12,15 @@ class Header
 {
 
 public:
-    u_int32_t n8q;
-    mpz_t     qPrime;
-    u_int32_t n8r;
-    mpz_t     rPrime;
+    std::uint32_t n8q;
+    mpz_t         qPrime;
+    std::uint32_t n8r;
+    mpz_t         rPrime;
 
-    u_int32_t nVars;
-    u_int32_t nPublic;
-    u_int32_t domainSize;
-    u_int64_t nCoefs;
+    std::uint32_t nVars;
+    std::uint32_t nPublic;
+    std::uint32_t domainSize;
+    u_int64_t     nCoefs;
 
     void* vk_alpha1;
     void* vk_beta1;
@@ -29,8 +29,11 @@ public:
     void* vk_delta1;
     void* vk_delta2;
 
-    Header();
+    Header() = default;
     ~Header();
+
+    Header(Header const&)            = delete; // no copy constructor
+    Header& operator=(Header const&) = delete;
 };
 
 std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file);

@@ -5,8 +5,6 @@
 namespace ZKeyUtils
 {
 
-Header::Header() {}
-
 Header::~Header()
 {
     mpz_clear(qPrime);
@@ -17,6 +15,8 @@ std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file)
 {
     // A memory leak was here
     auto h = std::make_unique<Header>();
+    mpz_init(h->qPrime);
+    mpz_init(h->rPrime);
 
     bin_file.startReadSection(1);
     uint32_t protocol = bin_file.readU32LE();
@@ -29,11 +29,9 @@ std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile& bin_file)
     bin_file.startReadSection(2);
 
     h->n8q = bin_file.readU32LE();
-    mpz_init(h->qPrime);
     mpz_import(h->qPrime, h->n8q, -1, 1, -1, 0, bin_file.read(h->n8q));
 
     h->n8r = bin_file.readU32LE();
-    mpz_init(h->rPrime);
     mpz_import(h->rPrime, h->n8r, -1, 1, -1, 0, bin_file.read(h->n8r));
 
     h->nVars      = bin_file.readU32LE();

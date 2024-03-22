@@ -203,7 +203,7 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
 
     // Load witness
     auto wtns       = BinFileUtils::openExisting(witnessFile, "wtns", 2);
-    auto wtnsHeader = WtnsUtils::loadHeader(wtns.get());
+    auto wtnsHeader = WtnsUtils::loadHeader(*wtns.get());
     log_info("Loaded witness file");
 
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0)
