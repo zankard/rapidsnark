@@ -30,11 +30,13 @@ static void VerifyPrimes(mpz_srcptr zkey_prime, mpz_srcptr wtns_prime)
 
     if (mpz_cmp(zkey_prime, altBbn128r) != 0)
     {
+        mpz_clear(altBbn128r);
         throw std::invalid_argument("zkey curve not supported");
     }
 
     if (mpz_cmp(wtns_prime, altBbn128r) != 0)
     {
+        mpz_clear(altBbn128r);
         throw std::invalid_argument("different wtns curve");
     }
 
