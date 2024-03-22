@@ -1,10 +1,12 @@
+set(CMAKE_CXX_STANDARD 17)
+
 if (ARCH MATCHES "arm64")
   link_libraries(${GMP_LIB})
   add_definitions(${GMP_DEFINIONS})
 else()
   link_libraries(gmp)
 endif()
- 
+
 
 if(USE_ASM)
     if(ARCH MATCHES "arm64")
@@ -134,5 +136,3 @@ if(OpenMP_CXX_FOUND)
         target_link_libraries(rapidsnark -static-openmp -fopenmp)
     endif()
 endif()
-
-

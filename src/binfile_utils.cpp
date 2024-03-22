@@ -1,3 +1,4 @@
+#include <cassert>
 #include <memory.h>
 #include <stdexcept>
 #include <string>
@@ -9,28 +10,29 @@
 namespace BinFileUtils
 {
 
-BinFile::BinFile(const void* fileData, size_t fileSize, std::string _type,
-                 uint32_t maxVersion)
+BinFile::BinFile(const void* fileData, size_t fileSize,
+                 std::string expected_type, uint32_t maxVersion)
 {
 
     size = fileSize;
-    addr = malloc(size);
-    memcpy(addr, fileData, size);
+    addr = std::make_unique<char[]>(size);
+    std::memcpy(addr.get(), fileData, size);
 
-    type.assign((const char*)addr, 4);
+    assert(size >= 4);
+    type.assign(addr.get(), 4);
     pos = 4;
 
-    if (type != _type)
+    if (type != expected_type)
     {
-        free(addr);
+        // free(addr);
         throw new std::invalid_argument("Invalid file type. It should be " +
-                                        _type + " and it is " + type);
+                                        expected_type + " and it is " + type);
     }
 
     version = readU32LE();
     if (version > maxVersion)
     {
-        free(addr);
+        // free(addr);
         throw new std::invalid_argument(
             "Invalid version. It should be <=" + std::to_string(maxVersion) +
             " and it is " + std::to_string(version));
@@ -48,8 +50,7 @@ BinFile::BinFile(const void* fileData, size_t fileSize, std::string _type,
             sections.insert(std::make_pair(sType, std::vector<Section>()));
         }
 
-        sections[sType].push_back(
-            Section((void*)((u_int64_t)addr + pos), sSize));
+        sections[sType].push_back(Section(addr.get() + pos, sSize));
 
         pos += sSize;
     }
@@ -58,7 +59,7 @@ BinFile::BinFile(const void* fileData, size_t fileSize, std::string _type,
     readingSection = NULL;
 }
 
-BinFile::~BinFile() { free(addr); }
+// BinFile::~BinFile() { free(addr); }
 
 void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos)
 {
@@ -82,7 +83,7 @@ void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos)
         throw new std::range_error("Already reading a section");
     }
 
-    pos = (u_int64_t)(sections[sectionId][sectionPos].start) - (u_int64_t)addr;
+    pos = sections[sectionId][sectionPos].start - addr.get();
 
     readingSection = &sections[sectionId][sectionPos];
 }
@@ -91,13 +92,12 @@ void BinFile::endReadSection(bool check)
 {
     if (check)
     {
-        if ((u_int64_t)addr + pos - (u_int64_t)(readingSection->start) !=
-            readingSection->size)
+        if (data() + pos - readingSection->start != readingSection->size)
         {
             throw new std::range_error("Invalid section size");
         }
     }
-    readingSection = NULL;
+    readingSection = nullptr;
 }
 
 void* BinFile::getSectionData(u_int32_t sectionId, u_int32_t sectionPos)
@@ -142,21 +142,25 @@ u_int64_t BinFile::getSectionSize(u_int32_t sectionId, u_int32_t sectionPos)
 
 u_int32_t BinFile::readU32LE()
 {
-    u_int32_t res = *((u_int32_t*)((u_int64_t)addr + pos));
+    assert(pos + 4 <= size);
+    u_int32_t res;
+    std::memcpy(&res, data() + pos, 4);
     pos += 4;
     return res;
 }
 
 u_int64_t BinFile::readU64LE()
 {
-    u_int64_t res = *((u_int64_t*)((u_int64_t)addr + pos));
+    assert(pos + 8 <= size);
+    u_int64_t res;
+    std::memcpy(&res, data() + pos, 8);
     pos += 8;
     return res;
 }
 
 void* BinFile::read(u_int64_t len)
 {
-    void* res = (void*)((u_int64_t)addr + pos);
+    void* res = data() + pos;
     pos += len;
     return res;
 }

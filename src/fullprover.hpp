@@ -1,5 +1,4 @@
-#ifndef FULLPROVER_H
-#define FULLPROVER_H
+#pragma once
 
 class FullProverImpl;
 
@@ -52,5 +51,3 @@ public:
     ~FullProver();
     ProverResponse prove(const char* input) const;
 };
-
-#endif // FULLPROVER_H

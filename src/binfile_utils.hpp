@@ -1,5 +1,7 @@
 #ifndef BINFILE_UTILS_H
 #define BINFILE_UTILS_H
+
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <string>
@@ -11,18 +13,18 @@ namespace BinFileUtils
 class BinFile
 {
 
-    void*     addr;
-    u_int64_t size;
-    u_int64_t pos;
+    std::unique_ptr<char[]> addr;
+    u_int64_t               size;
+    std::ptrdiff_t          pos;
 
     class Section
     {
-        void*     start;
+        char*     start;
         u_int64_t size;
 
     public:
         friend BinFile;
-        Section(void* _start, u_int64_t _size)
+        Section(char* _start, u_int64_t _size)
             : start(_start)
             , size(_size){};
     };
@@ -33,10 +35,15 @@ class BinFile
 
     Section* readingSection;
 
+private:
+    char* data() const { return addr.get(); }
+
 public:
-    BinFile(const void* fileData, size_t fileSize, std::string _type,
+    BinFile() = delete; // No default construction
+
+    BinFile(const void* fileData, size_t fileSize, std::string expected_type,
             uint32_t maxVersion);
-    ~BinFile();
+    // ~BinFile();
 
     void* getSetcionData(u_int32_t sectionId, u_int32_t sectionPos = 0);
 
