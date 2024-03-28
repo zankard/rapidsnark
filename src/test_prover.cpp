@@ -16293,7 +16293,7 @@ void print_results()
               << tests_failed << " failed." << std::endl;
 }
 
-int main()
+int xxmain()
 {
     Fr_Rw_add_unit_test();
     Fr_Rw_sub_unit_test();

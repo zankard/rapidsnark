@@ -59,24 +59,6 @@ void log_info(string msg) { log("INFO", msg); }
 void log_debug(string msg) { log("DEBUG", msg); }
 void log_error(string msg) { log("ERROR", msg); }
 
-class FullProverImpl
-{
-    // bool unsupported_zkey_curve; never used
-
-    std::string circuit;
-
-    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
-    std::unique_ptr<ZKeyUtils::Header>                 zkHeader;
-    std::unique_ptr<BinFileUtils::BinFile>             zKey;
-
-    mpz_t altBbn128r;
-
-public:
-    FullProverImpl(const char* _zkeyFileName);
-    ~FullProverImpl();
-    ProverResponse prove(const char* input) const;
-};
-
 FullProver::FullProver(const char* _zkeyFileName)
 {
     // std::cout << "in FullProver constructor" << std::endl;
@@ -240,4 +222,14 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
 
     log_info("FullProverImpl::prove end");
     return ProverResponse(proof_raw, metrics);
+}
+
+ProverResponse::~ProverResponse()
+{
+    if (raw_json != empty_string) // Was allocated by strdup(),
+                                  // and needs to be freed
+    {
+        // Not a pretty solution, but works
+        free(const_cast<char*>(raw_json));
+    }
 }

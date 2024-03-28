@@ -1,8 +1,10 @@
-#include "logging.hpp"
-#include "random_generator.hpp"
-#include <chrono>
-#include <future>
-#include <iostream>
+#if defined(GROTH16_INCLUDING_CPP_FROM_HPP)
+
+#    include "logging.hpp"
+#    include "random_generator.hpp"
+#    include <chrono>
+#    include <future>
+#    include <iostream>
 
 namespace Groth16
 {
@@ -35,7 +37,7 @@ std::unique_ptr<Proof<Engine>>
 Prover<Engine>::prove(typename Engine::FrElement* wtns)
 {
 
-#ifdef USE_OPENMP
+#    ifdef USE_OPENMP
     std::cout << "using openmp" << endl;
     std::cout << "num variables: " << nVars << endl;
     std::cout << "domain size: " << domainSize << endl;
@@ -70,7 +72,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     std::ostringstream ss5;
     ss5 << "pi_c: " << E.g1.toString(pi_c);
     LOG_DEBUG(ss5);
-#else
+#    else
     LOG_TRACE("Start Multiexp A");
     uint32_t                 sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
@@ -99,14 +101,14 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
                 pi_c, pointsC, (uint8_t*)((uint64_t)wtns + (nPublic + 1) * sW),
                 sW, nVars - nPublic - 1);
         });
-#endif
+#    endif
 
     LOG_TRACE("Start Initializing a b c A");
     auto a = new typename Engine::FrElement[domainSize];
     auto b = new typename Engine::FrElement[domainSize];
     auto c = new typename Engine::FrElement[domainSize];
 
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int32_t i = 0; i < domainSize; i++)
     {
         E.fr.copy(a[i], E.fr.zero());
@@ -114,34 +116,34 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     }
 
     LOG_TRACE("Processing coefs");
-#ifdef _OPENMP
-#    define NLOCKS 1024
+#    ifdef _OPENMP
+#        define NLOCKS 1024
     omp_lock_t locks[NLOCKS];
     for (int i = 0; i < NLOCKS; i++)
         omp_init_lock(&locks[i]);
-#    pragma omp parallel for
-#endif
+#        pragma omp parallel for
+#    endif
     for (u_int64_t i = 0; i < nCoefs; i++)
     {
         typename Engine::FrElement* ab = (coefs[i].m == 0) ? a : b;
         typename Engine::FrElement  aux;
 
         E.fr.mul(aux, wtns[coefs[i].s], coefs[i].coef);
-#ifdef _OPENMP
+#    ifdef _OPENMP
         omp_set_lock(&locks[coefs[i].c % NLOCKS]);
-#endif
+#    endif
         E.fr.add(ab[coefs[i].c], ab[coefs[i].c], aux);
-#ifdef _OPENMP
+#    ifdef _OPENMP
         omp_unset_lock(&locks[coefs[i].c % NLOCKS]);
-#endif
+#    endif
     }
-#ifdef _OPENMP
+#    ifdef _OPENMP
     for (int i = 0; i < NLOCKS; i++)
         omp_destroy_lock(&locks[i]);
-#endif
+#    endif
 
     LOG_TRACE("Calculating c");
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int32_t i = 0; i < domainSize; i++)
     {
         E.fr.mul(c[i], a[i], b[i]);
@@ -156,7 +158,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
     LOG_TRACE("Start Shift A");
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
         E.fr.mul(a[i], a[i], fft->root(domainPower + 1, i));
@@ -175,7 +177,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
     LOG_TRACE("Start Shift B");
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
         E.fr.mul(b[i], b[i], fft->root(domainPower + 1, i));
@@ -195,7 +197,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
     LOG_TRACE("Start Shift C");
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
         E.fr.mul(c[i], c[i], fft->root(domainPower + 1, i));
@@ -210,7 +212,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
 
     LOG_TRACE("Start ABC");
-#pragma omp parallel for
+#    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
         E.fr.mul(a[i], a[i], b[i]);
@@ -243,12 +245,12 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1);
     randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
 
-#ifndef USE_OPENMP
+#    ifndef USE_OPENMP
     pA_future.get();
     pB1_future.get();
     pB2_future.get();
     pC_future.get();
-#endif
+#    endif
 
     typename Engine::G1Point p1;
     typename Engine::G2Point p2;
@@ -340,3 +342,5 @@ json Proof<Engine>::toJson()
 }
 
 } // namespace Groth16
+
+#endif

@@ -3,6 +3,18 @@
 #include <cstdlib>
 #include <memory>
 
+#include "groth16.hpp"
+
+#include "logging.hpp"
+#include "nlohmann/json.hpp"
+#include "wtns_utils.hpp"
+
+#include "alt_bn128.hpp"
+#include "binfile_utils.hpp"
+#include "groth16.hpp"
+#include "zkey_utils.hpp"
+
+
 class FullProverImpl;
 
 enum ProverResponseType
@@ -45,15 +57,25 @@ public:
     ProverResponse(ProverError _error);
     ProverResponse(const char* _raw_json, ProverResponseMetrics _metrics);
 
-    ~ProverResponse()
-    {
-        if (raw_json != empty_string) // Was allocated by strdup(),
-                                      // and needs to be freed
-        {
-            // Not a pretty solution, but works
-            free(const_cast<char*>(raw_json));
-        }
-    }
+    ~ProverResponse();
+};
+
+class FullProverImpl
+{
+    // bool unsupported_zkey_curve; never used
+
+    std::string circuit;
+
+    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
+    std::unique_ptr<ZKeyUtils::Header>                 zkHeader;
+    std::unique_ptr<BinFileUtils::BinFile>             zKey;
+
+    mpz_t altBbn128r;
+
+public:
+    FullProverImpl(const char* _zkeyFileName);
+    ~FullProverImpl();
+    ProverResponse prove(const char* input) const;
 };
 
 class FullProver
