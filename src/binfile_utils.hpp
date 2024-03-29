@@ -7,15 +7,18 @@
 #include <string>
 #include <vector>
 
+#include "fileloader.hpp"
+
 namespace BinFileUtils
 {
 
 class BinFile
 {
+    std::unique_ptr<FileLoader> mapped_file_;
 
-    std::unique_ptr<char[]> addr;
-    std::uint64_t           size;
-    std::ptrdiff_t          pos;
+    char*          addr;
+    std::uint64_t  size;
+    std::ptrdiff_t pos;
 
     class Section
     {
@@ -24,6 +27,7 @@ class BinFile
 
     public:
         friend BinFile;
+
         Section(char* _start, std::uint64_t _size)
             : start(_start)
             , size(_size){};
@@ -36,13 +40,13 @@ class BinFile
     Section* readingSection;
 
 private:
-    char* data() const { return addr.get(); }
+    char* data() const { return addr; }
 
 public:
     BinFile() = delete; // No default construction
 
-    BinFile(const void* fileData, size_t fileSize, std::string expected_type,
-            uint32_t maxVersion);
+    BinFile(std::unique_ptr<FileLoader>&& mapped_file,
+            std::string expected_type, uint32_t maxVersion);
     // ~BinFile();
 
     void* getSetcionData(std::uint32_t sectionId, std::uint32_t sectionPos = 0);

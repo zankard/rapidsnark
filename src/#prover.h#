@@ -1,3 +1,5 @@
+#if 0
+
 #ifndef PROVER_HPP
 #define PROVER_HPP
 
@@ -38,3 +40,6 @@ extern "C"
 #endif
 
 #endif // PROVER_HPP
+
+
+#endif

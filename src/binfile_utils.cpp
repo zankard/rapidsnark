@@ -10,16 +10,17 @@
 namespace BinFileUtils
 {
 
-BinFile::BinFile(const void* fileData, size_t fileSize,
+BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
                  std::string expected_type, uint32_t maxVersion)
+    : mapped_file_(std::move(mapped_file))
 {
 
-    size = fileSize;
-    addr = std::make_unique<char[]>(size);
-    std::memcpy(addr.get(), fileData, size);
+    size = mapped_file_->dataSize();
+    addr = mapped_file_->dataBuffer();
+    // std::memcpy(addr.get(), fileData, size);
 
     assert(size >= 4);
-    type.assign(addr.get(), 4);
+    type.assign(addr, 4);
     pos = 4;
 
     if (type != expected_type)
@@ -50,7 +51,7 @@ BinFile::BinFile(const void* fileData, size_t fileSize,
             sections.insert(std::make_pair(sType, std::vector<Section>()));
         }
 
-        sections[sType].push_back(Section(addr.get() + pos, sSize));
+        sections[sType].push_back(Section(addr + pos, sSize));
 
         pos += sSize;
     }
@@ -84,7 +85,7 @@ void BinFile::startReadSection(std::uint32_t sectionId,
         throw new std::range_error("Already reading a section");
     }
 
-    pos = sections[sectionId][sectionPos].start - addr.get();
+    pos = sections[sectionId][sectionPos].start - addr;
 
     readingSection = &sections[sectionId][sectionPos];
 }
@@ -171,11 +172,10 @@ std::unique_ptr<BinFile> openExisting(std::string filename, std::string type,
                                       uint32_t maxVersion)
 {
 
-    FileLoader fileLoader(filename);
+    auto mapped_file = std::make_unique<FileLoader>(filename);
 
     // There was a possible memory leak
-    return std::make_unique<BinFile>(fileLoader.dataBuffer(),
-                                     fileLoader.dataSize(), type, maxVersion);
+    return std::make_unique<BinFile>(std::move(mapped_file), type, maxVersion);
 }
 
 } // namespace BinFileUtils
