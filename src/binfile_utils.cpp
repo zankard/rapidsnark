@@ -44,7 +44,7 @@ BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
     for (std::uint32_t i = 0; i < nSections; i++)
     {
         std::uint32_t sType = readU32LE();
-        u_int64_t     sSize = readU64LE();
+        std::size_t   sSize = readU64LE();
 
         if (sections.find(sType) == sections.end())
         {
@@ -122,8 +122,8 @@ void* BinFile::getSectionData(std::uint32_t sectionId, std::uint32_t sectionPos)
     return sections[sectionId][sectionPos].start;
 }
 
-u_int64_t BinFile::getSectionSize(std::uint32_t sectionId,
-                                  std::uint32_t sectionPos)
+std::uint64_t BinFile::getSectionSize(std::uint32_t sectionId,
+                                      std::uint32_t sectionPos)
 {
 
     if (sections.find(sectionId) == sections.end())
@@ -152,24 +152,25 @@ std::uint32_t BinFile::readU32LE()
     return res;
 }
 
-u_int64_t BinFile::readU64LE()
+std::uint64_t BinFile::readU64LE()
 {
     assert(pos + 8 <= size);
-    u_int64_t res;
+    std::size_t res;
     std::memcpy(&res, data() + pos, 8);
     pos += 8;
     return res;
 }
 
-void* BinFile::read(u_int64_t len)
+void* BinFile::read(std::uint64_t len)
 {
+    assert(pos + len <= size);
     void* res = data() + pos;
     pos += len;
     return res;
 }
 
 std::unique_ptr<BinFile> openExisting(std::string filename, std::string type,
-                                      uint32_t maxVersion)
+                                      std::uint32_t maxVersion)
 {
 
     auto mapped_file = std::make_unique<FileLoader>(filename);
