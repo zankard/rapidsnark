@@ -122,8 +122,8 @@ FullProverImpl::FullProverImpl(const char* _zkeyFileName)
     try
     {
         circuit  = getfilename(_zkeyFileName);
-        zKey     = BinFileUtils::openExisting(_zkeyFileName, "zkey", 1);
-        zkHeader = ZKeyUtils::loadHeader(*zKey.get());
+        zKey     = BinFileUtils::BinFile::make_from_file(_zkeyFileName, "zkey", 1);
+        zkHeader = ZKeyUtils::Header::make_from_bin_file(*zKey.get());
 
         std::string proofStr;
         if (mpz_cmp(zkHeader->rPrime, altBbn128r) != 0)
@@ -184,8 +184,8 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
     std::string witnessFile(witness_file_path);
 
     // Load witness
-    auto wtns       = BinFileUtils::openExisting(witnessFile, "wtns", 2);
-    auto wtnsHeader = WtnsUtils::loadHeader(*wtns.get());
+    auto wtns       = BinFileUtils::BinFile::make_from_file(witnessFile, "wtns", 2);
+    auto wtnsHeader = WtnsUtils::Header::make_from_bin_file(*wtns.get());
     log_info("Loaded witness file");
 
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0)

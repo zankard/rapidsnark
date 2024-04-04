@@ -2,6 +2,8 @@
 
 #    include "logging.hpp"
 #    include "random_generator.hpp"
+#    include "scope_guard.hpp"
+
 #    include <chrono>
 #    include <future>
 #    include <iostream>
@@ -16,20 +18,19 @@ makeProver(u_int32_t nVars, u_int32_t nPublic, u_int32_t domainSize,
            void* vk_delta_1, void* vk_delta_2, void* coefs, void* pointsA,
            void* pointsB1, void* pointsB2, void* pointsC, void* pointsH)
 {
-    Prover<Engine>* p =
-        new Prover<Engine>(Engine::engine, nVars, nPublic, domainSize, nCoeffs,
-                           *(typename Engine::G1PointAffine*)vk_alpha1,
-                           *(typename Engine::G1PointAffine*)vk_beta_1,
-                           *(typename Engine::G2PointAffine*)vk_beta_2,
-                           *(typename Engine::G1PointAffine*)vk_delta_1,
-                           *(typename Engine::G2PointAffine*)vk_delta_2,
-                           (Coef<Engine>*)((uint64_t)coefs + 4),
-                           (typename Engine::G1PointAffine*)pointsA,
-                           (typename Engine::G1PointAffine*)pointsB1,
-                           (typename Engine::G2PointAffine*)pointsB2,
-                           (typename Engine::G1PointAffine*)pointsC,
-                           (typename Engine::G1PointAffine*)pointsH);
-    return std::unique_ptr<Prover<Engine>>(p);
+    return std::make_unique<Prover<Engine>>(
+        Engine::engine, nVars, nPublic, domainSize, nCoeffs,
+        *(typename Engine::G1PointAffine*)vk_alpha1,
+        *(typename Engine::G1PointAffine*)vk_beta_1,
+        *(typename Engine::G2PointAffine*)vk_beta_2,
+        *(typename Engine::G1PointAffine*)vk_delta_1,
+        *(typename Engine::G2PointAffine*)vk_delta_2,
+        (Coef<Engine>*)((uint64_t)coefs + 4),
+        (typename Engine::G1PointAffine*)pointsA,
+        (typename Engine::G1PointAffine*)pointsB1,
+        (typename Engine::G2PointAffine*)pointsB2,
+        (typename Engine::G1PointAffine*)pointsC,
+        (typename Engine::G1PointAffine*)pointsH);
 }
 
 template <typename Engine>
@@ -105,8 +106,13 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
 
     LOG_TRACE("Start Initializing a b c A");
     auto a = new typename Engine::FrElement[domainSize];
+    MAKE_SCOPE_EXIT(delete_a) { delete[] a; };
+
     auto b = new typename Engine::FrElement[domainSize];
+    MAKE_SCOPE_EXIT(delete_b) { delete[] b; };
+
     auto c = new typename Engine::FrElement[domainSize];
+    MAKE_SCOPE_EXIT(delete_c) { delete[] c; };
 
 #    pragma omp parallel for
     for (u_int32_t i = 0; i < domainSize; i++)
@@ -150,10 +156,10 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     }
 
     LOG_TRACE("Initializing fft");
-    u_int32_t domainPower = fft->log2(domainSize);
+    u_int32_t domainPower = fft_.log2(domainSize);
 
     LOG_TRACE("Start iFFT A");
-    fft->ifft(a, domainSize);
+    fft_.ifft(a, domainSize);
     LOG_TRACE("a After ifft:");
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
@@ -161,18 +167,18 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
 #    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
-        E.fr.mul(a[i], a[i], fft->root(domainPower + 1, i));
+        E.fr.mul(a[i], a[i], fft_.root(domainPower + 1, i));
     }
     LOG_TRACE("a After shift:");
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
     LOG_TRACE("Start FFT A");
-    fft->fft(a, domainSize);
+    fft_.fft(a, domainSize);
     LOG_TRACE("a After fft:");
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
     LOG_TRACE("Start iFFT B");
-    fft->ifft(b, domainSize);
+    fft_.ifft(b, domainSize);
     LOG_TRACE("b After ifft:");
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
@@ -180,19 +186,19 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
 #    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
-        E.fr.mul(b[i], b[i], fft->root(domainPower + 1, i));
+        E.fr.mul(b[i], b[i], fft_.root(domainPower + 1, i));
     }
     LOG_TRACE("b After shift:");
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
     LOG_TRACE("Start FFT B");
-    fft->fft(b, domainSize);
+    fft_.fft(b, domainSize);
     LOG_TRACE("b After fft:");
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
 
     LOG_TRACE("Start iFFT C");
-    fft->ifft(c, domainSize);
+    fft_.ifft(c, domainSize);
     LOG_TRACE("c After ifft:");
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
@@ -200,13 +206,13 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
 #    pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++)
     {
-        E.fr.mul(c[i], c[i], fft->root(domainPower + 1, i));
+        E.fr.mul(c[i], c[i], fft_.root(domainPower + 1, i));
     }
     LOG_TRACE("c After shift:");
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
     LOG_TRACE("Start FFT C");
-    fft->fft(c, domainSize);
+    fft_.fft(c, domainSize);
     LOG_TRACE("c After fft:");
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
@@ -223,17 +229,12 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
 
-    delete[] b;
-    delete[] c;
-
     LOG_TRACE("Start Multiexp H");
     typename Engine::G1Point pih;
     E.g1.multiMulByScalar(pih, pointsH, (uint8_t*)a, sizeof(a[0]), domainSize);
     std::ostringstream ss1;
     ss1 << "pih: " << E.g1.toString(pih);
     LOG_DEBUG(ss1);
-
-    delete[] a;
 
     typename Engine::FrElement r;
     typename Engine::FrElement s;
@@ -242,8 +243,11 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     E.fr.copy(r, E.fr.zero());
     E.fr.copy(s, E.fr.zero());
 
-    randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1);
-    randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
+    // randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1); // TODO(zi): WHY -1
+    // ???? randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
+
+    fill_with_random_bytes(r);
+    fill_with_random_bytes(s);
 
 #    ifndef USE_OPENMP
     pA_future.get();
@@ -281,12 +285,12 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     E.g1.mulByScalar(p1, vk_delta1, (uint8_t*)&rs, sizeof(rs));
     E.g1.sub(pi_c, pi_c, p1);
 
-    Proof<Engine>* p = new Proof<Engine>(Engine::engine);
+    auto p = std::make_unique<Proof<Engine>>(Engine::engine);
     E.g1.copy(p->A, pi_a);
     E.g2.copy(p->B, pi_b);
     E.g1.copy(p->C, pi_c);
 
-    return std::unique_ptr<Proof<Engine>>(p);
+    return p;
 }
 
 template <typename Engine>

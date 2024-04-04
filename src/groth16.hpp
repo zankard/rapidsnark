@@ -2,8 +2,8 @@
 #define GROTH16_HPP
 
 #include <nlohmann/json.hpp>
-#include <string>
 #include <sstream>
+#include <string>
 
 using json = nlohmann::json;
 
@@ -62,7 +62,7 @@ class Prover
     typename Engine::G1PointAffine* pointsC;
     typename Engine::G1PointAffine* pointsH;
 
-    FFT<typename Engine::Fr>* fft;
+    FFT<typename Engine::Fr> fft_;
 
 public:
     Prover(Engine& _E, u_int32_t _nVars, u_int32_t _nPublic,
@@ -93,11 +93,14 @@ public:
         , pointsB2(_pointsB2)
         , pointsC(_pointsC)
         , pointsH(_pointsH)
+        , fft_(domainSize * 2)
     {
-        fft = new FFT<typename Engine::Fr>(domainSize * 2);
     }
 
-    ~Prover() { delete fft; }
+    Prover() = delete;
+
+    Prover(Prover const&)            = delete;
+    Prover& operator=(Prover const&) = delete;
 
     std::unique_ptr<Proof<Engine>> prove(typename Engine::FrElement* wtns);
 };

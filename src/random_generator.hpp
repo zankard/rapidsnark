@@ -24,4 +24,13 @@ inline void randombytes_buf(void* const buf, const size_t size)
 
 #endif // USE_SODIUM
 
+#include <type_traits>
+
+template <class T>
+inline void fill_with_random_bytes(T& x)
+{
+    static_assert(std::is_pod_v<T>);
+    randombytes_buf(std::addressof(x), sizeof(x));
+}
+
 #endif // RANDOM_GENERATOR_H

@@ -51,6 +51,38 @@ public:
 
     void* getSetcionData(std::uint32_t sectionId, std::uint32_t sectionPos = 0);
 
+    template <class T>
+    T bit_cast_section_data(std::uint32_t sectionId,
+                            std::uint32_t sectionPos = 0)
+    {
+        static_assert(std::is_trivially_copyable_v<T> &&
+                          std::is_trivially_constructible_v<T>,
+                      "This implementation requires destination type to be "
+                      "trivially copyable and trivially constructible");
+
+        auto it = sections.find(sectionId);
+        if (it == sections.end())
+        {
+            throw std::range_error("Section does not exist: " +
+                                   std::to_string(sectionId));
+        }
+
+        auto const& section = it->second;
+
+        if (sectionPos + sizeof(T) >= section.size())
+        {
+            throw std::range_error("Section pos too big. There are " +
+                                   std::to_string(section.size()) +
+                                   " and it's trying to access section: " +
+                                   std::to_string(sectionPos));
+        }
+
+        T ret;
+
+        std::memcpy(&ret, std::addressof(section.at(sectionId)), sizeof(T));
+        return ret;
+    }
+
     void startReadSection(std::uint32_t sectionId, std::uint32_t setionPos = 0);
     void endReadSection(bool check = true);
 
@@ -62,8 +94,18 @@ public:
     std::uint64_t readU64LE();
 
     void* read(uint64_t l);
+
+    static std::unique_ptr<BinFile> make_from_file(std::string   filename,
+                                                   std::string   type,
+                                                   std::uint32_t maxVersion)
+    {
+
+        auto mapped_file = std::make_unique<FileLoader>(filename);
+
+        // There was a possible memory leak
+        return std::make_unique<BinFile>(std::move(mapped_file), type,
+                                         maxVersion);
+    }
 };
 
-std::unique_ptr<BinFile> openExisting(std::string filename, std::string type,
-                                      uint32_t maxVersion);
 } // namespace BinFileUtils
