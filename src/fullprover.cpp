@@ -47,7 +47,7 @@ std::string getFormattedTimestamp()
     return ss.str();
 }
 
-void log(string level, string msg)
+void log(std::string level, std::string msg)
 {
 
     std::cout << "{\"timestamp\":\"" << getFormattedTimestamp()
@@ -55,9 +55,9 @@ void log(string level, string msg)
               << "\",\"target\":\"prover_service::rapidsnark\"}" << std::endl;
 }
 
-void log_info(string msg) { log("INFO", msg); }
-void log_debug(string msg) { log("DEBUG", msg); }
-void log_error(string msg) { log("ERROR", msg); }
+void log_info(std::string msg) { log("INFO", msg); }
+void log_debug(std::string msg) { log("DEBUG", msg); }
+void log_error(std::string msg) { log("ERROR", msg); }
 
 FullProver::FullProver(const char* _zkeyFileName)
 {

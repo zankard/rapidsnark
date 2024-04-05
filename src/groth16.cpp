@@ -3,20 +3,24 @@
 #    include "logging.hpp"
 #    include "random_generator.hpp"
 #    include "scope_guard.hpp"
+#    include "spinlock.hpp"
 
+#    include <array>
 #    include <chrono>
 #    include <future>
 #    include <iostream>
+#    include <tbb/parallel_for.h>
 
 namespace Groth16
 {
 
 template <typename Engine>
 std::unique_ptr<Prover<Engine>>
-makeProver(u_int32_t nVars, u_int32_t nPublic, u_int32_t domainSize,
-           u_int64_t nCoeffs, void* vk_alpha1, void* vk_beta_1, void* vk_beta_2,
-           void* vk_delta_1, void* vk_delta_2, void* coefs, void* pointsA,
-           void* pointsB1, void* pointsB2, void* pointsC, void* pointsH)
+makeProver(std::uint32_t nVars, std::uint32_t nPublic, std::uint32_t domainSize,
+           std::uint64_t nCoeffs, void* vk_alpha1, void* vk_beta_1,
+           void* vk_beta_2, void* vk_delta_1, void* vk_delta_2, void* coefs,
+           void* pointsA, void* pointsB1, void* pointsB2, void* pointsC,
+           void* pointsH)
 {
     return std::make_unique<Prover<Engine>>(
         Engine::engine, nVars, nPublic, domainSize, nCoeffs,
@@ -38,11 +42,11 @@ std::unique_ptr<Proof<Engine>>
 Prover<Engine>::prove(typename Engine::FrElement* wtns)
 {
 
-#    ifdef USE_OPENMP
-    std::cout << "using openmp" << endl;
-    std::cout << "num variables: " << nVars << endl;
-    std::cout << "domain size: " << domainSize << endl;
-    std::cout << "num coeffs: " << nCoefs << endl;
+#if 1 //    defined(USE_OPENMP) || 1
+    std::cout << "using openmp" << std::endl;
+    std::cout << "num variables: " << nVars << std::endl;
+    std::cout << "domain size: " << domainSize << std::endl;
+    std::cout << "num coeffs: " << nCoefs << std::endl;
     LOG_TRACE("OPENMP Start Multiexp A");
     uint32_t                 sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
@@ -114,12 +118,18 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     auto c = new typename Engine::FrElement[domainSize];
     MAKE_SCOPE_EXIT(delete_c) { delete[] c; };
 
-#    pragma omp parallel for
-    for (u_int32_t i = 0; i < domainSize; i++)
-    {
-        E.fr.copy(a[i], E.fr.zero());
-        E.fr.copy(b[i], E.fr.zero());
-    }
+    // #    pragma omp parallel for
+    // for (std::uint32_t i = 0; i < domainSize; i++)
+
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](tbb::blocked_range<std::uint32_t> range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.copy(a[i], E.fr.zero());
+                              E.fr.copy(b[i], E.fr.zero());
+                          }
+                      });
 
     LOG_TRACE("Processing coefs");
 #    ifdef _OPENMP
@@ -129,34 +139,54 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
         omp_init_lock(&locks[i]);
 #        pragma omp parallel for
 #    endif
-    for (u_int64_t i = 0; i < nCoefs; i++)
-    {
-        typename Engine::FrElement* ab = (coefs[i].m == 0) ? a : b;
-        typename Engine::FrElement  aux;
 
-        E.fr.mul(aux, wtns[coefs[i].s], coefs[i].coef);
-#    ifdef _OPENMP
-        omp_set_lock(&locks[coefs[i].c % NLOCKS]);
-#    endif
-        E.fr.add(ab[coefs[i].c], ab[coefs[i].c], aux);
-#    ifdef _OPENMP
-        omp_unset_lock(&locks[coefs[i].c % NLOCKS]);
-#    endif
-    }
-#    ifdef _OPENMP
-    for (int i = 0; i < NLOCKS; i++)
-        omp_destroy_lock(&locks[i]);
-#    endif
+    static constexpr int NUM_LOCKS = 1024;
+
+    std::array<aptos::spinlock, NUM_LOCKS> spinlocks;
+
+    // for (std::uint64_t i = 0; i < nCoefs; i++)
+    tbb::parallel_for(
+        tbb::blocked_range<std::uint64_t>(0, nCoefs),
+        [&](tbb::blocked_range<std::uint64_t> range)
+        {
+            for (int i = range.begin(); i < range.end(); ++i)
+            {
+                typename Engine::FrElement* ab = (coefs[i].m == 0) ? a : b;
+                typename Engine::FrElement  aux;
+
+                E.fr.mul(aux, wtns[coefs[i].s], coefs[i].coef);
+                // #    ifdef _OPENMP
+                //         omp_set_lock(&locks[coefs[i].c % NLOCKS]);
+                // #    endif
+                {
+                    std::unique_lock lock(spinlocks[coefs[i].c % NUM_LOCKS]);
+                    E.fr.add(ab[coefs[i].c], ab[coefs[i].c], aux);
+                }
+                // #    ifdef _OPENMP
+                //         omp_unset_lock(&locks[coefs[i].c % NLOCKS]);
+                // #    endif
+            }
+        });
+    // #    ifdef _OPENMP
+    //     for (int i = 0; i < NLOCKS; i++)
+    //         omp_destroy_lock(&locks[i]);
+    // #    endif
 
     LOG_TRACE("Calculating c");
-#    pragma omp parallel for
-    for (u_int32_t i = 0; i < domainSize; i++)
-    {
-        E.fr.mul(c[i], a[i], b[i]);
-    }
+    // #    pragma omp parallel for
+    // for (std::uint32_t i = 0; i < domainSize; i++)
+
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](auto range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.mul(c[i], a[i], b[i]);
+                          }
+                      });
 
     LOG_TRACE("Initializing fft");
-    u_int32_t domainPower = fft_.log2(domainSize);
+    std::uint32_t domainPower = fft_.log2(domainSize);
 
     LOG_TRACE("Start iFFT A");
     fft_.ifft(a, domainSize);
@@ -164,11 +194,17 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
     LOG_TRACE("Start Shift A");
-#    pragma omp parallel for
-    for (u_int64_t i = 0; i < domainSize; i++)
-    {
-        E.fr.mul(a[i], a[i], fft_.root(domainPower + 1, i));
-    }
+    // #    pragma omp parallel for
+    //     for (std::uint64_t i = 0; i < domainSize; i++)
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](auto range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.mul(a[i], a[i],
+                                       fft_.root(domainPower + 1, i));
+                          }
+                      });
     LOG_TRACE("a After shift:");
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
@@ -183,11 +219,17 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
     LOG_TRACE("Start Shift B");
-#    pragma omp parallel for
-    for (u_int64_t i = 0; i < domainSize; i++)
-    {
-        E.fr.mul(b[i], b[i], fft_.root(domainPower + 1, i));
-    }
+    // #    pragma omp parallel for
+    //     for (std::uint64_t i = 0; i < domainSize; i++)
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](auto range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.mul(b[i], b[i],
+                                       fft_.root(domainPower + 1, i));
+                          }
+                      });
     LOG_TRACE("b After shift:");
     LOG_DEBUG(E.fr.toString(b[0]).c_str());
     LOG_DEBUG(E.fr.toString(b[1]).c_str());
@@ -203,11 +245,17 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
     LOG_TRACE("Start Shift C");
-#    pragma omp parallel for
-    for (u_int64_t i = 0; i < domainSize; i++)
-    {
-        E.fr.mul(c[i], c[i], fft_.root(domainPower + 1, i));
-    }
+    // #    pragma omp parallel for
+    //     for (std::uint64_t i = 0; i < domainSize; i++)
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](auto range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.mul(c[i], c[i],
+                                       fft_.root(domainPower + 1, i));
+                          }
+                      });
     LOG_TRACE("c After shift:");
     LOG_DEBUG(E.fr.toString(c[0]).c_str());
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
@@ -218,13 +266,19 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_DEBUG(E.fr.toString(c[1]).c_str());
 
     LOG_TRACE("Start ABC");
-#    pragma omp parallel for
-    for (u_int64_t i = 0; i < domainSize; i++)
-    {
-        E.fr.mul(a[i], a[i], b[i]);
-        E.fr.sub(a[i], a[i], c[i]);
-        E.fr.fromMontgomery(a[i], a[i]);
-    }
+    // #    pragma omp parallel for
+    //     for (std::uint64_t i = 0; i < domainSize; i++)
+    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
+                      [&](auto range)
+                      {
+                          for (int i = range.begin(); i < range.end(); ++i)
+                          {
+                              E.fr.mul(a[i], a[i], b[i]);
+                              E.fr.sub(a[i], a[i], c[i]);
+                              E.fr.fromMontgomery(a[i], a[i]);
+                          }
+                      });
+
     LOG_TRACE("abc:");
     LOG_DEBUG(E.fr.toString(a[0]).c_str());
     LOG_DEBUG(E.fr.toString(a[1]).c_str());
@@ -249,12 +303,12 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     fill_with_random_bytes(r);
     fill_with_random_bytes(s);
 
-#    ifndef USE_OPENMP
-    pA_future.get();
-    pB1_future.get();
-    pB2_future.get();
-    pC_future.get();
-#    endif
+// #    ifndef USE_OPENMP
+//     pA_future.get();
+//     pB1_future.get();
+//     pB2_future.get();
+//     pC_future.get();
+// #    endif
 
     typename Engine::G1Point p1;
     typename Engine::G2Point p2;
@@ -296,7 +350,6 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
 template <typename Engine>
 std::string Proof<Engine>::toJsonStr()
 {
-
     std::ostringstream ss;
     ss << "{ \"pi_a\":[\"" << E.f1.toString(A.x) << "\",\""
        << E.f1.toString(A.y) << "\",\"1\"], ";
@@ -313,7 +366,6 @@ std::string Proof<Engine>::toJsonStr()
 template <typename Engine>
 json Proof<Engine>::toJson()
 {
-
     json p;
 
     p["pi_a"] = {};

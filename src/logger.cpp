@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <random>
+#include <sstream>
 
 // Code Specific Header Files(s)
 #include "logger.hpp"
@@ -124,15 +126,44 @@ void Logger::logOnConsole(std::string& data)
     cout << getCurrentTime() << "  " << data << endl;
 }
 
+string getCurrentTime2()
+{
+    // Get the current time point
+    auto now = std::chrono::system_clock::now();
+
+    // Convert the time point to a time_t object
+    std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
+
+    // Convert to std::tm for formatting
+    std::tm* now_tm = std::gmtime(&now_time_t);
+
+    // Extract milliseconds from the time point
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                  now.time_since_epoch()) %
+              1000;
+
+    // Create a stringstream to format the timestamp
+    std::stringstream ss;
+    ss << std::put_time(now_tm, "%Y-%m-%d %H:%M:%S") << '.' << std::setfill('0')
+       << std::setw(3) << ms.count();
+    // ss << "Z";
+
+    // Return the formatted timestamp as a string
+    return ss.str();
+}
+
 string Logger::getCurrentTime()
 {
-    string currTime;
-    // Current date/time based on current time
+    return getCurrentTime2();
+
+    string  currTime;
+    // Current date / time based on current time
     time_t now = time(0);
     // Convert current time to string
     currTime.assign(ctime(&now));
 
     // Last charactor of currentTime is "\n", so remove it
+
     string currentTime = currTime.substr(0, currTime.size() - 1);
     return currentTime;
 }
