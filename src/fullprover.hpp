@@ -57,6 +57,10 @@ public:
     ProverResponse(ProverError _error);
     ProverResponse(const char* _raw_json, ProverResponseMetrics _metrics);
 
+    ProverResponse() = delete;
+    ProverResponse(ProverResponse const&) = delete;
+    ProverResponse& operator=(ProverResponse const&) = delete;
+
     ~ProverResponse();
 };
 

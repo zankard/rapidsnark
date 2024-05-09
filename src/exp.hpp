@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include "naf.hpp"
@@ -14,8 +14,12 @@ void nafMulByScalar(BaseGroup& G, BaseGroupElementOut& r,
 {
     BaseGroupElementIn   baseCopy;
     int                  nBits = (scalarSize * 8) + 2;
-    std::vector<uint8_t> naf((scalarSize + 2) * 8);
-    buildNaf(naf.data(), scalar, scalarSize);
+    // std::vector<uint8_t> naf((scalarSize + 2) * 8);
+    std::vector<std::int64_t> naf_as_i64(scalarSize + 2);
+
+    buildNaf(naf_as_i64.data(), scalar, scalarSize);
+
+    auto naf = reinterpret_cast<std::uint8_t*>(naf_as_i64.data());
 
     G.copy(baseCopy, base); // base and result can be the same
     G.copy(r, G.zero());
@@ -23,7 +27,7 @@ void nafMulByScalar(BaseGroup& G, BaseGroupElementOut& r,
 
     while ((i >= 0) && (naf[i] == 0))
     {
-        i--;
+        --i;
     }
 
     while (i >= 0)

@@ -41,8 +41,9 @@ template <typename Engine>
 std::unique_ptr<Proof<Engine>>
 Prover<Engine>::prove(typename Engine::FrElement* wtns)
 {
+#define USE_FUTURES
 
-#if 1 //    defined(USE_OPENMP) || 1
+#ifndef USE_FUTURES //  1 //    defined(USE_OPENMP) || 1
     std::cout << "using openmp" << std::endl;
     std::cout << "num variables: " << nVars << std::endl;
     std::cout << "domain size: " << domainSize << std::endl;
@@ -303,12 +304,12 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     fill_with_random_bytes(r);
     fill_with_random_bytes(s);
 
-// #    ifndef USE_OPENMP
-//     pA_future.get();
-//     pB1_future.get();
-//     pB2_future.get();
-//     pC_future.get();
-// #    endif
+#    ifdef USE_FUTURES
+    pA_future.get();
+    pB1_future.get();
+    pB2_future.get();
+    pC_future.get();
+#    endif
 
     typename Engine::G1Point p1;
     typename Engine::G2Point p2;
