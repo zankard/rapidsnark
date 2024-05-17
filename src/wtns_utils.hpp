@@ -1,25 +1,45 @@
-#ifndef WTNS_UTILS
-#define WTNS_UTILS
+#pragma once
 
+#include <cstdint>
 #include <gmp.h>
 
 #include "binfile_utils.hpp"
 
-namespace WtnsUtils {
+namespace WtnsUtils
+{
 
-    class Header {
-    public:
-        u_int32_t n8;
-        mpz_t prime;
+class Header
+{
+public:
+    std::uint32_t n8;
+    mpz_t         prime;
 
-        u_int32_t nVars;
+    std::uint32_t nVars;
 
-        Header();
-        ~Header();
-    };
+    Header() { mpz_init(prime); };
 
-    std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f);
+    Header(Header const&)            = delete;
+    Header& operator=(Header const&) = delete;
 
-}
+    ~Header() { mpz_clear(prime); }
 
-#endif // ZKEY_UTILS_H
+    static std::unique_ptr<Header>
+    make_from_bin_file(BinFileUtils::BinFile& bin_file)
+    {
+        auto ret = std::make_unique<Header>();
+
+        bin_file.startReadSection(1);
+
+        ret->n8 = bin_file.readU32LE();
+        mpz_import(ret->prime, ret->n8, -1, 1, -1, 0, bin_file.read(ret->n8));
+
+        ret->nVars = bin_file.readU32LE();
+
+        bin_file.endReadSection();
+
+        return ret;
+    }
+
+}; // class Header
+
+} // namespace WtnsUtils
