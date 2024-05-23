@@ -61,7 +61,7 @@ install(TARGETS rapidsnark rapidsnarkStatic rapidsnarkStaticFrFq fr fq
     BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}/app
     LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(FILES 
+install(FILES
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
   if (ARCH MATCHES "arm64")

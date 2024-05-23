@@ -83,26 +83,31 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 set(LIB_SOURCES
+    alt_bn128.hpp
+    alt_bn128.cpp
     binfile_utils.hpp
     binfile_utils.cpp
-    zkey_utils.hpp
-    zkey_utils.cpp
-    wtns_utils.hpp
-    wtns_utils.cpp
-    logger.hpp
-    logger.cpp
-    fileloader.cpp
+    curve.hpp
+    exp.hpp
+    f2field.hpp
+    fft.hpp
     fileloader.hpp
-    prover.cpp
-    prover.h
-    proverapi.hpp
-    proverapi.cpp
     fullprover.hpp
     fullprover.cpp
-    ../depends/ffiasm/c/misc.cpp
-    ../depends/ffiasm/c/naf.cpp
-    ../depends/ffiasm/c/splitparstr.cpp
-    ../depends/ffiasm/c/alt_bn128.cpp
+    groth16.hpp
+    groth16.cpp
+    logger.hpp
+    logger.cpp
+    misc.hpp
+    misc.cpp
+    multiexp.hpp
+    naf.hpp
+    random_generator.hpp
+    scope_guard.hpp
+    spinlock.hpp
+    splitparstr.hpp
+    wtns_utils.hpp
+    zkey_utils.hpp
     )
 
 if(USE_LOGGER)
@@ -110,12 +115,25 @@ if(USE_LOGGER)
     add_definitions(-DUSE_LOGGER)
 endif()
 
-include_directories(
+if (ARCH MATCHES "arm64")
+   include_directories(
+    ../src
+    ../build
+    ../depends/ffiasm/c
+    ../depends/json/single_include
+    ../depends/cpp-httplib/
+    /opt/homebrew/include
+    )
+else()
+   include_directories(
     ../src
     ../build
     ../depends/ffiasm/c
     ../depends/json/single_include
     ../depends/cpp-httplib/)
+endif()
+
+
 
 
 add_library(rapidsnarkStatic STATIC ${LIB_SOURCES})
@@ -129,6 +147,15 @@ target_link_libraries(rapidsnarkStatic)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
+find_package(TBB REQUIRED)
+
+if(TBB_FOUND)
+    message("${TBB_INCLUDE_DIR}")
+    message("${TBB_LIBRARIES}")
+    message("${LIB_SOURCES}")
+endif()
+
+target_link_libraries(rapidsnark TBB::tbb)
 
 
 if(OpenMP_CXX_FOUND)
