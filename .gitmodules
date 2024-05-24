@@ -14,3 +14,6 @@
 [submodule "depends/cpp-httplib"]
 	path = depends/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib
+[submodule "depends/tbb/oneTBB"]
+	path = depends/tbb/oneTBB
+	url = https://github.com/oneapi-src/oneTBB
