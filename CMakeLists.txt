@@ -69,5 +69,5 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
   endif()
 
-install(FILES src/prover.h src/fullprover.hpp
+install(FILES src/fullprover.hpp
     DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

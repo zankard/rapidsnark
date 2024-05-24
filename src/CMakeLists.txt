@@ -122,7 +122,7 @@ if (ARCH MATCHES "arm64")
     ../depends/ffiasm/c
     ../depends/json/single_include
     ../depends/cpp-httplib/
-    /opt/homebrew/include
+    ../depends/tbb/oneTBB/build/installed/include/
     )
 else()
    include_directories(
@@ -130,10 +130,12 @@ else()
     ../build
     ../depends/ffiasm/c
     ../depends/json/single_include
-    ../depends/cpp-httplib/)
+    ../depends/cpp-httplib/
+    ../depends/tbb/oneTBB/build/installed/include/
+    )
 endif()
 
-
+link_directories(../depends/tbb/oneTBB/build/installed/lib/)
 
 
 add_library(rapidsnarkStatic STATIC ${LIB_SOURCES})
@@ -147,15 +149,7 @@ target_link_libraries(rapidsnarkStatic)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
-find_package(TBB REQUIRED)
-
-if(TBB_FOUND)
-    message("${TBB_INCLUDE_DIR}")
-    message("${TBB_LIBRARIES}")
-    message("${LIB_SOURCES}")
-endif()
-
-target_link_libraries(rapidsnark TBB::tbb)
+target_link_libraries(rapidsnark tbb)
 
 
 if(OpenMP_CXX_FOUND)
