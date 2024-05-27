@@ -8,18 +8,35 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "alt_bn128.hpp"
+#include "binfile_utils.hpp"
 #include "fr.hpp"
 #include "fullprover.hpp"
-
+#include "groth16.hpp"
 #include "logging.hpp"
 #include "nlohmann/json.hpp"
 #include "wtns_utils.hpp"
-
-#include "alt_bn128.hpp"
-#include "binfile_utils.hpp"
-#include "groth16.hpp"
 #include "zkey_utils.hpp"
+
 #include <mutex>
+
+class FullProverImpl
+{
+    // bool unsupported_zkey_curve; never used
+
+    std::string circuit;
+
+    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
+    std::unique_ptr<ZKeyUtils::Header>                 zkHeader;
+    std::unique_ptr<BinFileUtils::BinFile>             zKey;
+
+    mpz_t altBbn128r;
+
+public:
+    FullProverImpl(const char* _zkeyFileName);
+    ~FullProverImpl();
+    ProverResponse prove(const char* input) const;
+};
 
 std::string getFormattedTimestamp()
 {
@@ -121,8 +138,8 @@ FullProverImpl::FullProverImpl(const char* _zkeyFileName)
     // Not the best solution at all, but easy to add.
     try
     {
-        circuit  = getfilename(_zkeyFileName);
-        zKey     = BinFileUtils::BinFile::make_from_file(_zkeyFileName, "zkey", 1);
+        circuit = getfilename(_zkeyFileName);
+        zKey = BinFileUtils::BinFile::make_from_file(_zkeyFileName, "zkey", 1);
         zkHeader = ZKeyUtils::Header::make_from_bin_file(*zKey.get());
 
         std::string proofStr;
@@ -184,7 +201,7 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
     std::string witnessFile(witness_file_path);
 
     // Load witness
-    auto wtns       = BinFileUtils::BinFile::make_from_file(witnessFile, "wtns", 2);
+    auto wtns = BinFileUtils::BinFile::make_from_file(witnessFile, "wtns", 2);
     auto wtnsHeader = WtnsUtils::Header::make_from_bin_file(*wtns.get());
     log_info("Loaded witness file");
 
