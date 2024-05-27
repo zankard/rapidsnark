@@ -62,6 +62,6 @@ class FullProver
 public:
     FullProver() = delete;
     FullProver(const char* _zkeyFileName);
-    // ~FullProver();
+    ~FullProver();
     ProverResponse prove(const char* input) const;
 };

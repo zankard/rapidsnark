@@ -97,8 +97,9 @@ FullProver::FullProver(const char* _zkeyFileName)
     }
 }
 
-// FullProver::~FullProver()
-// {
+FullProver::~FullProver()
+{
+}
 //     std::cout << "in FullProver destructor" << std::endl;
 //     delete impl;
 // }
