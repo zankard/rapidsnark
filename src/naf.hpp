@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 
 static inline std::uint64_t NAFTable[1024];
 

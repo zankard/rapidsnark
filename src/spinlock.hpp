@@ -8,7 +8,7 @@ namespace aptos
 class [[nodiscard]] spinlock
 {
 public:
-    using lockable_type = std::atomic_flag;
+    using lockable_type = std::atomic_uint;
 
     [[nodiscard]] constexpr spinlock() noexcept = default;
 
@@ -17,9 +17,9 @@ public:
 
     void lock() noexcept
     {
-        while (lockable_.test_and_set(std::memory_order_acquire))
+        while (lockable_.exchange(1u, std::memory_order_acquire))
         {
-            while (lockable_.test(std::memory_order_relaxed))
+            while (lockable_.load(std::memory_order_relaxed))
             {
             }
         }
@@ -27,13 +27,13 @@ public:
 
     bool try_lock() noexcept
     {
-        return lockable_.test_and_set(std::memory_order_acquire);
+        return lockable_.exchange(1u, std::memory_order_acquire);
     }
 
-    void unlock() noexcept { lockable_.clear(std::memory_order_release); }
+    void unlock() noexcept { lockable_.store(0u, std::memory_order_release); }
 
 private:
-    std::atomic_flag lockable_{};
+    std::atomic_uint lockable_{0u};
 };
 
 } // namespace aptos
