@@ -122,7 +122,7 @@ if (ARCH MATCHES "arm64")
     ../depends/ffiasm/c
     ../depends/json/single_include
     ../depends/cpp-httplib/
-    ../depends/tbb/oneTBB/build/installed/include/
+    ../package/include/
     )
 else()
    include_directories(
@@ -131,11 +131,11 @@ else()
     ../depends/ffiasm/c
     ../depends/json/single_include
     ../depends/cpp-httplib/
-    ../depends/tbb/oneTBB/build/installed/include/
+    ../package/include/
     )
 endif()
 
-link_directories(../depends/tbb/oneTBB/build/installed/lib/)
+link_directories(../package/lib/)
 
 
 add_library(rapidsnarkStatic STATIC ${LIB_SOURCES})

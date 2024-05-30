@@ -79,10 +79,12 @@ void log_error(std::string msg) { log("ERROR", msg); }
 FullProver::FullProver(const char* _zkeyFileName)
 {
     // std::cout << "in FullProver constructor" << std::endl;
+    impl = nullptr;
     try
     {
         // std::cout << "try" << std::endl;
-        impl  = std::make_unique<FullProverImpl>(_zkeyFileName);
+        auto impl_uptr = std::make_unique<FullProverImpl>(_zkeyFileName);
+        impl = impl_uptr.release();
         state = FullProverState::OK;
     }
     catch (std::invalid_argument e)
@@ -99,6 +101,10 @@ FullProver::FullProver(const char* _zkeyFileName)
 
 FullProver::~FullProver()
 {
+    if (impl)
+    {
+        delete impl;
+    }
 }
 //     std::cout << "in FullProver destructor" << std::endl;
 //     delete impl;

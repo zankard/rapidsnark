@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstdlib>
-#include <memory>
-
 class FullProverImpl;
 
 enum ProverResponseType
@@ -56,8 +53,8 @@ class FullProverImpl;
 
 class FullProver
 {
-    std::unique_ptr<FullProverImpl> impl;
-    FullProverState                 state;
+    FullProverImpl* impl;
+    FullProverState state;
 
 public:
     FullProver() = delete;
