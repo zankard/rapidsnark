@@ -9,9 +9,6 @@
 
 #include <thread>
 #include <vector>
-#ifdef USE_OPENMP
-#    include <omp.h>
-#endif
 
 template <typename Field>
 class FFT
@@ -19,11 +16,11 @@ class FFT
     Field                           f;
     typedef typename Field::Element Element;
 
-    std::uint32_t s;
-    Element       nqr;
-    std::vector<Element>      roots;
-    std::vector<Element>      powTwoInv;
-    std::uint32_t nThreads;
+    std::uint32_t        s;
+    Element              nqr;
+    std::vector<Element> roots;
+    std::vector<Element> powTwoInv;
+    // std::uint32_t        nThreads; // not used
 
     void reversePermutationInnerLoop(Element* a, std::uint64_t from,
                                      std::uint64_t to, std::uint32_t domainPow);
@@ -78,11 +75,6 @@ static inline std::uint64_t BR(std::uint64_t x, std::uint64_t domainPow)
 template <typename Field>
 FFT<Field>::FFT(std::uint64_t maxDomainSize, uint32_t _nThreads)
 {
-#ifdef _OPENMP
-    nThreads = _nThreads == 0 ? omp_get_max_threads() : _nThreads;
-#else
-    nThreads = 1;
-#endif
     f = Field::field;
 
     std::uint32_t domainPow = log2(maxDomainSize);
@@ -128,9 +120,9 @@ FFT<Field>::FFT(std::uint64_t maxDomainSize, uint32_t _nThreads)
 
     uint64_t nRoots = 1LL << s;
 
-    roots.resize(nRoots); //  = new Element[nRoots];
+    roots.resize(nRoots);
 
-    powTwoInv.resize(s + 1); // = new Element[s + 1];
+    powTwoInv.resize(s + 1);
 
     f.copy(roots[0], f.one());
     f.copy(powTwoInv[0], f.one());
@@ -143,18 +135,12 @@ FFT<Field>::FFT(std::uint64_t maxDomainSize, uint32_t _nThreads)
         mpz_invert(m_aux, m_aux, m_q);
         f.fromMpz(powTwoInv[1], m_aux);
     }
-    // #pragma omp parallel
-    int const nSpan = 1024;
+
+    int const nSpan = tbb::this_task_arena::max_concurrency() * 10;
+
     tbb::parallel_for(0, nSpan,
                       [&](int idSpan)
                       {
-                          // #ifdef _OPENMP
-                          //         int idThread = omp_get_thread_num();
-                          //         int nThreads = omp_get_num_threads();
-                          // #else
-                          // int idSpan =
-                          // 0;//tbb::this_task_arena::current_thread_index();
-                          // #endif
                           uint64_t increment = nRoots / nSpan;
                           uint64_t start = idSpan == 0 ? 2 : idSpan * increment;
                           uint64_t end   = idSpan == nSpan - 1
@@ -220,8 +206,6 @@ template <typename Field>
 void FFT<Field>::reversePermutation(Element* a, std::uint64_t n)
 {
     int domainPow = log2(n);
-    // #pragma omp parallel for
-    // for (std::uint64_t i = 0; i < n; i++)
 
     tbb::parallel_for(tbb::blocked_range<std::uint64_t>(0, n),
                       [&](tbb::blocked_range<std::uint64_t> range)
@@ -250,13 +234,11 @@ void FFT<Field>::fft(Element* a, std::uint64_t n)
     {
         std::uint64_t m     = 1 << s;
         std::uint64_t mdiv2 = m >> 1;
-        // #pragma omp parallel for
+
         tbb::parallel_for(tbb::blocked_range<std::uint64_t>(0, n >> 1),
                           [&](tbb::blocked_range<std::uint64_t> range)
                           {
                               for (int i = range.begin(); i < range.end(); ++i)
-
-                              // for (std::uint64_t i = 0; i < (n >> 1); i++)
                               {
                                   Element       t;
                                   Element       u;
@@ -278,12 +260,11 @@ void FFT<Field>::ifft(Element* a, std::uint64_t n)
     fft(a, n);
     std::uint64_t domainPow = log2(n);
     std::uint64_t nDiv2     = n >> 1;
-    // #pragma omp parallel for
+
     tbb::parallel_for(tbb::blocked_range<std::uint64_t>(1, nDiv2),
                       [&](tbb::blocked_range<std::uint64_t> range)
                       {
                           for (int i = range.begin(); i < range.end(); ++i)
-                          // for (std::uint64_t i = 1; i < nDiv2; i++)
                           {
                               if (i >= nDiv2)
                                   throw 123;

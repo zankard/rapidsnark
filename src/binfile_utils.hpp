@@ -2,11 +2,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <cstring>
 
 #include "fileloader.hpp"
 
@@ -31,7 +31,7 @@ class BinFile
 
         Section(char* _start, std::uint64_t _size)
             : start(_start)
-            , size(_size){};
+            , size(_size) {};
     };
 
     std::map<int, std::vector<Section>> sections;
@@ -48,7 +48,6 @@ public:
 
     BinFile(std::unique_ptr<FileLoader>&& mapped_file,
             std::string expected_type, uint32_t maxVersion);
-    // ~BinFile();
 
     void* getSetcionData(std::uint32_t sectionId, std::uint32_t sectionPos = 0);
 

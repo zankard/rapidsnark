@@ -7,7 +7,7 @@
 
 #include "misc.hpp"
 #include "multiexp.hpp"
-#    include "scope_guard.hpp"
+#include "scope_guard.hpp"
 
 #include <tbb/parallel_for.h>
 
@@ -107,12 +107,9 @@ void ParallelMultiexp<Curve>::processChunk(uint64_t idChunk)
                 if (g.isZero(bases[i]))
                     continue;
                 uint64_t chunkValue = getChunk(i, idChunk);
-                // #ifdef _OPENMP
-                //                 int idThread = omp_get_thread_num();
-                // #else
+
                 int idThread = tbb::this_task_arena::current_thread_index();
-                // #endif
-                //        if(chunkValue==0) continue;
+
                 if (chunkValue)
                 {
                     g.add(accs[idThread * accsPerChunk + chunkValue].p,
@@ -141,11 +138,9 @@ void ParallelMultiexp<Curve>::processChunk(uint64_t idChunk, uint64_t nX,
                     continue;
                 if (g.isZero(bases[i]))
                     continue;
-                // #ifdef _OPENMP
-                //                 int idThread = omp_get_thread_num();
-                // #else
+
                 int idThread = tbb::this_task_arena::current_thread_index();
-                // #endif
+
                 uint64_t chunkValue = getChunk(i, idChunk);
 
                 if (chunkValue)
@@ -202,26 +197,22 @@ void ParallelMultiexp<Curve>::reduce(typename Curve::Point& res, uint64_t nBits)
 
     // #pragma omp parallel for
     //     for (uint64_t i = 1; i < ndiv2; i++)
-    tbb::parallel_for(tbb::blocked_range<std::uint64_t>(0, ndiv2),
-                      [&](auto range)
-                      {
-                          for (auto i = range.begin(); i < range.end(); ++i)
-                          {
-#ifdef _OPENMP
-                              int idThread = omp_get_thread_num();
-#else
-        int idThread = tbb::this_task_arena::current_thread_index();
-#endif
-                              if (!g.isZero(accs[ndiv2 + i].p))
-                              {
-                                  g.add(accs[i].p, accs[i].p,
-                                        accs[ndiv2 + i].p);
-                                  g.add(sall[idThread].p, sall[idThread].p,
-                                        accs[ndiv2 + i].p);
-                                  g.copy(accs[ndiv2 + i].p, g.zero());
-                              }
-                          }
-                      });
+    tbb::parallel_for(
+        tbb::blocked_range<std::uint64_t>(0, ndiv2),
+        [&](auto range)
+        {
+            for (auto i = range.begin(); i < range.end(); ++i)
+            {
+                int idThread = tbb::this_task_arena::current_thread_index();
+                if (!g.isZero(accs[ndiv2 + i].p))
+                {
+                    g.add(accs[i].p, accs[i].p, accs[ndiv2 + i].p);
+                    g.add(sall[idThread].p, sall[idThread].p,
+                          accs[ndiv2 + i].p);
+                    g.copy(accs[ndiv2 + i].p, g.zero());
+                }
+            }
+        });
 
     for (u_int32_t i = 0; i < nThreads; i++)
     {
@@ -244,12 +235,8 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
                                        uint8_t* _scalars, uint64_t _scalarSize,
                                        uint64_t _n, uint64_t _nThreads)
 {
-// #ifdef _OPENMP
-//     nThreads = _nThreads == 0 ? omp_get_max_threads() : _nThreads;
-//     ThreadLimit threadLimit(nThreads);
-// #else
     nThreads = tbb::this_task_arena::max_concurrency();
-//#endif
+
     bases      = _bases;
     scalars    = _scalars;
     scalarSize = _scalarSize;
@@ -266,7 +253,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
         return;
     }
 
-    bitsPerChunk = log2((uint32_t)(n / PME2_PACK_FACTOR));
+    bitsPerChunk = aptos::log2((uint32_t)(n / PME2_PACK_FACTOR));
 
     if (bitsPerChunk > PME2_MAX_CHUNK_SIZE_BITS)
         bitsPerChunk = PME2_MAX_CHUNK_SIZE_BITS;
@@ -275,7 +262,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
     nChunks      = ((scalarSize * 8 - 1) / bitsPerChunk) + 1;
     accsPerChunk = 1 << bitsPerChunk; // In the chunks last bit is always zero.
 
-    typename Curve::Point* chunkResults =  new typename Curve::Point[nChunks];
+    typename Curve::Point* chunkResults = new typename Curve::Point[nChunks];
     MAKE_SCOPE_EXIT(delete_chunkResults) { delete[] chunkResults; };
 
     accs = new PaddedPoint[nThreads * accsPerChunk];
@@ -314,12 +301,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
                                        uint64_t _n, uint64_t nx, uint64_t x[],
                                        uint64_t _nThreads)
 {
-// #ifdef _OPENMP
-//     nThreads = _nThreads == 0 ? omp_get_max_threads() : _nThreads;
-//     ThreadLimit threadLimit(nThreads);
-// #else
     nThreads = tbb::this_task_arena::max_concurrency();
-//#endif
 
     bases      = _bases;
     scalars    = _scalars;
@@ -336,7 +318,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
         g.mulByScalar(r, bases[0], scalars, scalarSize);
         return;
     }
-    bitsPerChunk = log2((uint32_t)(n / PME2_PACK_FACTOR));
+    bitsPerChunk = aptos::log2((uint32_t)(n / PME2_PACK_FACTOR));
     if (bitsPerChunk > PME2_MAX_CHUNK_SIZE_BITS)
         bitsPerChunk = PME2_MAX_CHUNK_SIZE_BITS;
     if (bitsPerChunk < PME2_MIN_CHUNK_SIZE_BITS)
@@ -344,7 +326,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point&       r,
     nChunks      = ((scalarSize * 8 - 1) / bitsPerChunk) + 1;
     accsPerChunk = 1 << bitsPerChunk; // In the chunks last bit is always zero.
 
-    typename Curve::Point* chunkResults =  new typename Curve::Point[nChunks];
+    typename Curve::Point* chunkResults = new typename Curve::Point[nChunks];
     MAKE_SCOPE_EXIT(delete_chunkResults) { delete[] chunkResults; };
 
     accs = new PaddedPoint[nThreads * accsPerChunk];

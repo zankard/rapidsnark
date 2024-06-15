@@ -17,7 +17,6 @@ BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
 
     size = mapped_file_->dataSize();
     addr = mapped_file_->dataBuffer();
-    // std::memcpy(addr.get(), fileData, size);
 
     assert(size >= 4);
     type.assign(addr, 4);
@@ -25,7 +24,6 @@ BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
 
     if (type != expected_type)
     {
-        // free(addr);
         throw std::invalid_argument("Invalid file type. It should be " +
                                     expected_type + " and it is " + type);
     }
@@ -33,7 +31,6 @@ BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
     version = readU32LE();
     if (version > maxVersion)
     {
-        // free(addr);
         throw std::invalid_argument(
             "Invalid version. It should be <=" + std::to_string(maxVersion) +
             " and it is " + std::to_string(version));
@@ -59,8 +56,6 @@ BinFile::BinFile(std::unique_ptr<FileLoader>&& mapped_file,
     pos            = 0;
     readingSection = nullptr;
 }
-
-// BinFile::~BinFile() { free(addr); }
 
 void BinFile::startReadSection(std::uint32_t sectionId,
                                std::uint32_t sectionPos)

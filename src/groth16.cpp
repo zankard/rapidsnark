@@ -41,14 +41,14 @@ template <typename Engine>
 std::unique_ptr<Proof<Engine>>
 Prover<Engine>::prove(typename Engine::FrElement* wtns)
 {
-#define USE_FUTURES
 
-#ifndef USE_FUTURES //  1 //    defined(USE_OPENMP) || 1
-    std::cout << "using openmp" << std::endl;
-    std::cout << "num variables: " << nVars << std::endl;
-    std::cout << "domain size: " << domainSize << std::endl;
-    std::cout << "num coeffs: " << nCoefs << std::endl;
-    LOG_TRACE("OPENMP Start Multiexp A");
+// #define DONT_USE_FUTURES // seems to be slower on both x86 and M2
+
+#    ifdef DONT_USE_FUTURES
+    // std::cout << "num variables: " << nVars << std::endl;
+    // std::cout << "domain size: " << domainSize << std::endl;
+    // std::cout << "num coeffs: " << nCoefs << std::endl;
+    LOG_TRACE("Start Multiexp A");
     uint32_t                 sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
     E.g1.multiMulByScalar(pi_a, pointsA, (uint8_t*)wtns, sW, nVars);
@@ -56,21 +56,21 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     ss2 << "pi_a: " << E.g1.toString(pi_a);
     LOG_DEBUG(ss2);
 
-    LOG_TRACE("OPENMP Start Multiexp B1");
+    LOG_TRACE("Start Multiexp B1");
     typename Engine::G1Point pib1;
     E.g1.multiMulByScalar(pib1, pointsB1, (uint8_t*)wtns, sW, nVars);
     std::ostringstream ss3;
     ss3 << "pib1: " << E.g1.toString(pib1);
     LOG_DEBUG(ss3);
 
-    LOG_TRACE("OPENMP Start Multiexp B2");
+    LOG_TRACE("Start Multiexp B2");
     typename Engine::G2Point pi_b;
     E.g2.multiMulByScalar(pi_b, pointsB2, (uint8_t*)wtns, sW, nVars);
     std::ostringstream ss4;
     ss4 << "pi_b: " << E.g2.toString(pi_b);
     LOG_DEBUG(ss4);
 
-    LOG_TRACE("OPENMP Start Multiexp C");
+    LOG_TRACE("Start Multiexp C");
     typename Engine::G1Point pi_c;
     E.g1.multiMulByScalar(pi_c, pointsC,
                           (uint8_t*)((uint64_t)wtns + (nPublic + 1) * sW), sW,
@@ -78,7 +78,9 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     std::ostringstream ss5;
     ss5 << "pi_c: " << E.g1.toString(pi_c);
     LOG_DEBUG(ss5);
-#    else
+
+#    else // use futures (for scalar multiplications)
+
     LOG_TRACE("Start Multiexp A");
     uint32_t                 sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
@@ -119,9 +121,6 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     auto c = new typename Engine::FrElement[domainSize];
     MAKE_SCOPE_EXIT(delete_c) { delete[] c; };
 
-    // #    pragma omp parallel for
-    // for (std::uint32_t i = 0; i < domainSize; i++)
-
     tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
                       [&](tbb::blocked_range<std::uint32_t> range)
                       {
@@ -133,19 +132,11 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
                       });
 
     LOG_TRACE("Processing coefs");
-#    ifdef _OPENMP
-#        define NLOCKS 1024
-    omp_lock_t locks[NLOCKS];
-    for (int i = 0; i < NLOCKS; i++)
-        omp_init_lock(&locks[i]);
-#        pragma omp parallel for
-#    endif
 
     static constexpr int NUM_LOCKS = 1024;
 
     std::array<aptos::spinlock, NUM_LOCKS> spinlocks;
 
-    // for (std::uint64_t i = 0; i < nCoefs; i++)
     tbb::parallel_for(
         tbb::blocked_range<std::uint64_t>(0, nCoefs),
         [&](tbb::blocked_range<std::uint64_t> range)
@@ -156,26 +147,14 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
                 typename Engine::FrElement  aux;
 
                 E.fr.mul(aux, wtns[coefs[i].s], coefs[i].coef);
-                // #    ifdef _OPENMP
-                //         omp_set_lock(&locks[coefs[i].c % NLOCKS]);
-                // #    endif
                 {
                     std::unique_lock lock(spinlocks[coefs[i].c % NUM_LOCKS]);
                     E.fr.add(ab[coefs[i].c], ab[coefs[i].c], aux);
                 }
-                // #    ifdef _OPENMP
-                //         omp_unset_lock(&locks[coefs[i].c % NLOCKS]);
-                // #    endif
             }
         });
-    // #    ifdef _OPENMP
-    //     for (int i = 0; i < NLOCKS; i++)
-    //         omp_destroy_lock(&locks[i]);
-    // #    endif
 
     LOG_TRACE("Calculating c");
-    // #    pragma omp parallel for
-    // for (std::uint32_t i = 0; i < domainSize; i++)
 
     tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
                       [&](auto range)
@@ -189,86 +168,100 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     LOG_TRACE("Initializing fft");
     std::uint32_t domainPower = fft_.log2(domainSize);
 
-    LOG_TRACE("Start iFFT A");
-    fft_.ifft(a, domainSize);
-    LOG_TRACE("a After ifft:");
-    LOG_DEBUG(E.fr.toString(a[0]).c_str());
-    LOG_DEBUG(E.fr.toString(a[1]).c_str());
-    LOG_TRACE("Start Shift A");
-    // #    pragma omp parallel for
-    //     for (std::uint64_t i = 0; i < domainSize; i++)
-    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
-                      [&](auto range)
-                      {
-                          for (int i = range.begin(); i < range.end(); ++i)
-                          {
-                              E.fr.mul(a[i], a[i],
-                                       fft_.root(domainPower + 1, i));
-                          }
-                      });
-    LOG_TRACE("a After shift:");
-    LOG_DEBUG(E.fr.toString(a[0]).c_str());
-    LOG_DEBUG(E.fr.toString(a[1]).c_str());
-    LOG_TRACE("Start FFT A");
-    fft_.fft(a, domainSize);
-    LOG_TRACE("a After fft:");
-    LOG_DEBUG(E.fr.toString(a[0]).c_str());
-    LOG_DEBUG(E.fr.toString(a[1]).c_str());
-    LOG_TRACE("Start iFFT B");
-    fft_.ifft(b, domainSize);
-    LOG_TRACE("b After ifft:");
-    LOG_DEBUG(E.fr.toString(b[0]).c_str());
-    LOG_DEBUG(E.fr.toString(b[1]).c_str());
-    LOG_TRACE("Start Shift B");
-    // #    pragma omp parallel for
-    //     for (std::uint64_t i = 0; i < domainSize; i++)
-    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
-                      [&](auto range)
-                      {
-                          for (int i = range.begin(); i < range.end(); ++i)
-                          {
-                              E.fr.mul(b[i], b[i],
-                                       fft_.root(domainPower + 1, i));
-                          }
-                      });
-    LOG_TRACE("b After shift:");
-    LOG_DEBUG(E.fr.toString(b[0]).c_str());
-    LOG_DEBUG(E.fr.toString(b[1]).c_str());
-    LOG_TRACE("Start FFT B");
-    fft_.fft(b, domainSize);
-    LOG_TRACE("b After fft:");
-    LOG_DEBUG(E.fr.toString(b[0]).c_str());
-    LOG_DEBUG(E.fr.toString(b[1]).c_str());
+    auto iFFT_A_future = std::async(
+        [&]()
+        {
+            LOG_TRACE("Start iFFT A");
+            fft_.ifft(a, domainSize);
+            LOG_TRACE("a After ifft:");
+            LOG_DEBUG(E.fr.toString(a[0]).c_str());
+            LOG_DEBUG(E.fr.toString(a[1]).c_str());
+            LOG_TRACE("Start Shift A");
 
-    LOG_TRACE("Start iFFT C");
-    fft_.ifft(c, domainSize);
-    LOG_TRACE("c After ifft:");
-    LOG_DEBUG(E.fr.toString(c[0]).c_str());
-    LOG_DEBUG(E.fr.toString(c[1]).c_str());
-    LOG_TRACE("Start Shift C");
-    // #    pragma omp parallel for
-    //     for (std::uint64_t i = 0; i < domainSize; i++)
-    tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
-                      [&](auto range)
-                      {
-                          for (int i = range.begin(); i < range.end(); ++i)
-                          {
-                              E.fr.mul(c[i], c[i],
-                                       fft_.root(domainPower + 1, i));
-                          }
-                      });
-    LOG_TRACE("c After shift:");
-    LOG_DEBUG(E.fr.toString(c[0]).c_str());
-    LOG_DEBUG(E.fr.toString(c[1]).c_str());
-    LOG_TRACE("Start FFT C");
-    fft_.fft(c, domainSize);
-    LOG_TRACE("c After fft:");
-    LOG_DEBUG(E.fr.toString(c[0]).c_str());
-    LOG_DEBUG(E.fr.toString(c[1]).c_str());
+            tbb::parallel_for(
+                tbb::blocked_range<std::uint32_t>(0, domainSize),
+                [&](auto range)
+                {
+                    for (int i = range.begin(); i < range.end(); ++i)
+                    {
+                        E.fr.mul(a[i], a[i], fft_.root(domainPower + 1, i));
+                    }
+                });
+            LOG_TRACE("a After shift:");
+            LOG_DEBUG(E.fr.toString(a[0]).c_str());
+            LOG_DEBUG(E.fr.toString(a[1]).c_str());
+            LOG_TRACE("Start FFT A");
+            fft_.fft(a, domainSize);
+            LOG_TRACE("a After fft:");
+            LOG_DEBUG(E.fr.toString(a[0]).c_str());
+            LOG_DEBUG(E.fr.toString(a[1]).c_str());
+        });
+
+    auto iFFT_B_future = std::async(
+        [&]()
+        {
+            LOG_TRACE("Start iFFT B");
+            fft_.ifft(b, domainSize);
+            LOG_TRACE("b After ifft:");
+            LOG_DEBUG(E.fr.toString(b[0]).c_str());
+            LOG_DEBUG(E.fr.toString(b[1]).c_str());
+            LOG_TRACE("Start Shift B");
+            // #    pragma omp parallel for
+            //     for (std::uint64_t i = 0; i < domainSize; i++)
+            tbb::parallel_for(
+                tbb::blocked_range<std::uint32_t>(0, domainSize),
+                [&](auto range)
+                {
+                    for (int i = range.begin(); i < range.end(); ++i)
+                    {
+                        E.fr.mul(b[i], b[i], fft_.root(domainPower + 1, i));
+                    }
+                });
+            LOG_TRACE("b After shift:");
+            LOG_DEBUG(E.fr.toString(b[0]).c_str());
+            LOG_DEBUG(E.fr.toString(b[1]).c_str());
+            LOG_TRACE("Start FFT B");
+            fft_.fft(b, domainSize);
+            LOG_TRACE("b After fft:");
+            LOG_DEBUG(E.fr.toString(b[0]).c_str());
+            LOG_DEBUG(E.fr.toString(b[1]).c_str());
+        });
+
+    auto iFFT_C_future = std::async(
+        [&]()
+        {
+            LOG_TRACE("Start iFFT C");
+            fft_.ifft(c, domainSize);
+            LOG_TRACE("c After ifft:");
+            LOG_DEBUG(E.fr.toString(c[0]).c_str());
+            LOG_DEBUG(E.fr.toString(c[1]).c_str());
+            LOG_TRACE("Start Shift C");
+
+            tbb::parallel_for(
+                tbb::blocked_range<std::uint32_t>(0, domainSize),
+                [&](auto range)
+                {
+                    for (int i = range.begin(); i < range.end(); ++i)
+                    {
+                        E.fr.mul(c[i], c[i], fft_.root(domainPower + 1, i));
+                    }
+                });
+            LOG_TRACE("c After shift:");
+            LOG_DEBUG(E.fr.toString(c[0]).c_str());
+            LOG_DEBUG(E.fr.toString(c[1]).c_str());
+            LOG_TRACE("Start FFT C");
+            fft_.fft(c, domainSize);
+            LOG_TRACE("c After fft:");
+            LOG_DEBUG(E.fr.toString(c[0]).c_str());
+            LOG_DEBUG(E.fr.toString(c[1]).c_str());
+        });
+
+    iFFT_A_future.get();
+    iFFT_B_future.get();
+    iFFT_C_future.get();
 
     LOG_TRACE("Start ABC");
-    // #    pragma omp parallel for
-    //     for (std::uint64_t i = 0; i < domainSize; i++)
+
     tbb::parallel_for(tbb::blocked_range<std::uint32_t>(0, domainSize),
                       [&](auto range)
                       {
@@ -299,12 +292,11 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     E.fr.copy(s, E.fr.zero());
 
     // randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1); // TODO(zi): WHY -1
-    // ???? randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
 
     fill_with_random_bytes(r);
     fill_with_random_bytes(s);
 
-#    ifdef USE_FUTURES
+#    ifndef DONT_USE_FUTURES
     pA_future.get();
     pB1_future.get();
     pB2_future.get();

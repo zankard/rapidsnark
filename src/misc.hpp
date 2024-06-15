@@ -1,36 +1,22 @@
-#ifndef MISC_H
-#define MISC_H
+#pragma once
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 #include <cstdint>
 
-uint32_t log2 (uint32_t value);
+namespace aptos
+{
 
-#ifdef _OPENMP
+static inline uint32_t const tab32[32] = {
+    0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
+    8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31};
 
-/**
- * This object is used to temporarily change the max number of omp threads.
- * When the object is destructed, the max threads is set to it's original value.
- */
-class ThreadLimit {
-public:
-    ThreadLimit(uint32_t maxThreads):
-        prev_max_threads(omp_get_max_threads())
-    {
-        omp_set_num_threads(maxThreads);
-    }
+inline uint32_t log2(uint32_t value)
+{
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    return tab32[(uint32_t)(value * 0x07C4ACDD) >> 27];
+}
 
-    ~ThreadLimit() noexcept
-    {
-        omp_set_num_threads(prev_max_threads);
-    }
-
-private:
-    uint32_t prev_max_threads;
-};
-
-#endif // _OPENMP
-
-#endif // MISC_H
+} // namespace aptos

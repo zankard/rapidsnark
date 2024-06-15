@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iostream>
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
 #include "naf.hpp"
@@ -12,8 +12,9 @@ void nafMulByScalar(BaseGroup& G, BaseGroupElementOut& r,
                     BaseGroupElementIn& base, uint8_t* scalar,
                     unsigned int scalarSize)
 {
-    BaseGroupElementIn   baseCopy;
-    int                  nBits = (scalarSize * 8) + 2;
+    BaseGroupElementIn baseCopy;
+    int                nBits = (scalarSize * 8) + 2;
+
     // std::vector<uint8_t> naf((scalarSize + 2) * 8);
     std::vector<std::int64_t> naf_as_i64(scalarSize + 2);
 

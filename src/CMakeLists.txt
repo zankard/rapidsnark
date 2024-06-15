@@ -76,12 +76,6 @@ set_target_properties(fq PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 link_libraries(fq)
 
-
-if(OpenMP_CXX_FOUND)
-    add_definitions(-DUSE_OPENMP)
-    add_compile_options(${OpenMP_CXX_FLAGS})
-endif()
-
 set(LIB_SOURCES
     alt_bn128.hpp
     alt_bn128.cpp

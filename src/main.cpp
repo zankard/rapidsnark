@@ -3,21 +3,14 @@
 
 int main(int argc, char* argv[])
 {
-    std::cout << "Aleks";
-    std::cout << "\n";
-
-
     auto zkey_file = argc > 1 ? argv[1] : "./testdata/circuit_final.zkey";
+    auto wtns_file = argc > 2 ? argv[2] : "./witness.wtns";
 
-    // return 0;
-
-    // FullProver prover("../main_00004.zkey");
-    // FullProver prover("./testdata/circuit_final.zkey");
     FullProver prover(zkey_file);
 
     while (1)
     {
-        auto       ret = prover.prove("./witness.wtns");
+        auto ret = prover.prove(wtns_file);
 
         if (ret.type == SUCCESS)
         {
@@ -29,5 +22,4 @@ int main(int argc, char* argv[])
         }
         std::cout << ret.raw_json << "\n";
     }
-
 }
