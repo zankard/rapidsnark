@@ -291,10 +291,14 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     E.fr.copy(r, E.fr.zero());
     E.fr.copy(s, E.fr.zero());
 
-    // FIlling in the last byte here with a non-zero value causes a small amount of proofs to fail,
+    // Filling in the last byte here with a non-zero value causes a small amount of proofs to fail,
     // possibly due to overflowing the field modulus
     randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1);
     randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
+
+    // Make extra sure the final byte is 0
+    reinterpret_cast<char*>(&r)[sizeof(r) - 1] = 0;
+    reinterpret_cast<char*>(&s)[sizeof(s) - 1] = 0;
 
 #    ifndef DONT_USE_FUTURES
     pA_future.get();
