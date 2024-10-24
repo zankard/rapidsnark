@@ -288,8 +288,30 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     typename Engine::FrElement s;
     typename Engine::FrElement rs;
 
-    E.fr.copy(r, E.fr.zero());
-    E.fr.copy(s, E.fr.zero());
+    //E.fr.copy(r, E.fr.zero());
+    //E.fr.copy(s, E.fr.zero());
+
+
+    FrRawElement fr_modulus = {0x43E1F593F0000001ull, 0x2833E84879B97091ull,
+                               0xB85045B68181585Dull, 0x30644E72E131A029ull};
+
+    for (int cmp = 0; cmp >= 0;)
+    {
+        randombytes_buf(&r, sizeof(r));
+        r.v[3] &= 0x3FFFFFFFFFFFFFFFull;
+        auto r_copy      = r.v;
+        auto fr_mod_copy = fr_modulus;
+        cmp              = Fr_rawCmp(r_copy, fr_mod_copy);
+    }
+
+    for (int cmp = 0; cmp >= 0;)
+    {
+        randombytes_buf(&s, sizeof(s));
+        s.v[3] &= 0x3FFFFFFFFFFFFFFFull;
+        auto s_copy      = s.v;
+        auto fr_mod_copy = fr_modulus;
+        cmp              = Fr_rawCmp(s_copy, fr_mod_copy);
+    }
 
     // Filling in the last byte here with a non-zero value causes a small amount of proofs to fail,
     // possibly due to overflowing the field modulus
