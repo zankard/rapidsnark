@@ -295,6 +295,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     FrRawElement fr_modulus = {0x43E1F593F0000001ull, 0x2833E84879B97091ull,
                                0xB85045B68181585Dull, 0x30644E72E131A029ull};
 
+    // Sample and reject algorithm for r and s uniformly random field elements
     for (int cmp = 0; cmp >= 0;)
     {
         randombytes_buf(&r, sizeof(r));
@@ -312,15 +313,6 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
         auto fr_mod_copy = fr_modulus;
         cmp              = Fr_rawCmp(s_copy, fr_mod_copy);
     }
-
-    // Filling in the last byte here with a non-zero value causes a small amount of proofs to fail,
-    // possibly due to overflowing the field modulus
-    randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1);
-    randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
-
-    // Make extra sure the final byte is 0
-    reinterpret_cast<char*>(&r)[sizeof(r) - 1] = 0;
-    reinterpret_cast<char*>(&s)[sizeof(s) - 1] = 0;
 
 #    ifndef DONT_USE_FUTURES
     pA_future.get();
