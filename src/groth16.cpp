@@ -288,17 +288,31 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     typename Engine::FrElement s;
     typename Engine::FrElement rs;
 
-    E.fr.copy(r, E.fr.zero());
-    E.fr.copy(s, E.fr.zero());
+    // Scalar field modulus for BN128. Taken from the Arkworks algebra repository at
+    // https://github.com/arkworks-rs/algebra/blob/master/curves/bn254/src/fields/fr.rs#L4
+    // and cross referenced with the value at https://github.com/onurinanc/noir-bn254,
+    // converted into hexadecimal with its 4 64-bit chunks being placed in little-endian order
+    FrRawElement fr_modulus = {0x43E1F593F0000001ull, 0x2833E84879B97091ull,
+                               0xB85045B68181585Dull, 0x30644E72E131A029ull};
 
-    // Filling in the last byte here with a non-zero value causes a small amount of proofs to fail,
-    // possibly due to overflowing the field modulus
-    randombytes_buf((void*)&(r.v[0]), sizeof(r) - 1);
-    randombytes_buf((void*)&(s.v[0]), sizeof(s) - 1);
+    // Sample and reject algorithm for r and s uniformly random field elements
+    for (int cmp = 0; cmp >= 0;)
+    {
+        randombytes_buf(&r, sizeof(r));
+        r.v[3] &= 0x3FFFFFFFFFFFFFFFull;
+        auto r_copy      = r.v;
+        auto fr_mod_copy = fr_modulus;
+        cmp              = Fr_rawCmp(r_copy, fr_mod_copy);
+    }
 
-    // Make extra sure the final byte is 0
-    reinterpret_cast<char*>(&r)[sizeof(r) - 1] = 0;
-    reinterpret_cast<char*>(&s)[sizeof(s) - 1] = 0;
+    for (int cmp = 0; cmp >= 0;)
+    {
+        randombytes_buf(&s, sizeof(s));
+        s.v[3] &= 0x3FFFFFFFFFFFFFFFull;
+        auto s_copy      = s.v;
+        auto fr_mod_copy = fr_modulus;
+        cmp              = Fr_rawCmp(s_copy, fr_mod_copy);
+    }
 
 #    ifndef DONT_USE_FUTURES
     pA_future.get();
