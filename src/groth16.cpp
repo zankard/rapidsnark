@@ -288,10 +288,10 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
     typename Engine::FrElement s;
     typename Engine::FrElement rs;
 
-    //E.fr.copy(r, E.fr.zero());
-    //E.fr.copy(s, E.fr.zero());
-
-
+    // Scalar field modulus for BN128. Taken from the Arkworks algebra repository at
+    // https://github.com/arkworks-rs/algebra/blob/master/curves/bn254/src/fields/fr.rs#L4
+    // and cross referenced with the value at https://github.com/onurinanc/noir-bn254,
+    // converted into hexadecimal with its 4 64-bit chunks being placed in little-endian order
     FrRawElement fr_modulus = {0x43E1F593F0000001ull, 0x2833E84879B97091ull,
                                0xB85045B68181585Dull, 0x30644E72E131A029ull};
 
