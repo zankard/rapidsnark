@@ -12,11 +12,10 @@ if [[ $(uname -s) == "Darwin" ]]; then
   cmake .. -DTARGET_PLATFORM=macos_arm64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package
   make -j4 && make install
 else
-  num_cpus=`grep -c ^processor /proc/cpuinfo`
   mkdir -p build_prover
   cd build_prover
-  cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package ..
-  make -j$num_cpus 
+  cmake .. -DUSE_ASM=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package ..
+  make -j$(nproc)
   make install
 fi
 
