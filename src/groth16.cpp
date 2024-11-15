@@ -296,7 +296,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
                                0xB85045B68181585Dull, 0x30644E72E131A029ull};
 
     // Sample and reject algorithm for r and s uniformly random field elements
-    for (int cmp = 0; cmp == 0;)
+    for (int cmp = 0; cmp >= 0;)
     {
         randombytes_buf(&r, sizeof(r));
         r.v[3] &= 0x3FFFFFFFFFFFFFFFull;
@@ -305,7 +305,7 @@ Prover<Engine>::prove(typename Engine::FrElement* wtns)
         cmp              = mpn_cmp(r_copy, fr_mod_copy, Fr_N64);
     }
 
-    for (int cmp = 1; cmp == 0;)
+    for (int cmp = 0; cmp >= 0;)
     {
         randombytes_buf(&s, sizeof(s));
         s.v[3] &= 0x3FFFFFFFFFFFFFFFull;
