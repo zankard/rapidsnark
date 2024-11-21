@@ -71,3 +71,13 @@ install(FILES
 
 install(FILES src/fullprover.hpp
     DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+# Assume the library provides a variable with its path
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    get_target_property(TBB_LIB_DIR TBB::tbb LOCATION)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    get_target_property(TBB_LIB_DIR TBB::tbb LOCATION_Release)
+endif()
+
+install(FILES ${TBB_LIB_DIR}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

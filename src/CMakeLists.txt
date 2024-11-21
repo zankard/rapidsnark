@@ -139,12 +139,12 @@ add_library(rapidsnarkStaticFrFq STATIC ${LIB_SOURCES} ${FQ_SOURCES} ${FR_SOURCE
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(rapidsnarkStaticFrFq PROPERTIES OUTPUT_NAME rapidsnark-fr-fq)
 
-target_link_libraries(rapidsnarkStaticFrFq TBB::tbb)
-target_link_libraries(rapidsnarkStatic TBB::tbb)
+target_link_libraries(rapidsnarkStaticFrFq PRIVATE TBB::tbb)
+target_link_libraries(rapidsnarkStatic PRIVATE TBB::tbb)
 
 add_library(rapidsnark SHARED ${LIB_SOURCES})
 
-target_link_libraries(rapidsnark TBB::tbb)
+target_link_libraries(rapidsnark PRIVATE TBB::tbb)
 
 
 if(OpenMP_CXX_FOUND)
