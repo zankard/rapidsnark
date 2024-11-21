@@ -4,6 +4,10 @@
         {
             "name": "default",
             "inherits": ["vcpkg", "macOS"]
+        },
+        {
+            "name": "linux-default",
+            "inherits": ["vcpkg", "linux"]
         }
     ]
 }

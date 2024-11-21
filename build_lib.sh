@@ -14,7 +14,7 @@ if [[ $(uname -s) == "Darwin" ]]; then
 else
     mkdir -p build_prover
     cd build_prover
-    cmake .. -LAH -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package ..
+    cmake .. --preset=linux-default -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package
     make -j$(nproc)
     make install
 fi

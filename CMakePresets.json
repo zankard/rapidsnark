@@ -9,12 +9,12 @@
         {
             "name": "macOS",
             "binaryDir": "${sourceDir}/build_prover_macos_arm64",
-            "displayName": "macOS-only configuration",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
-            }
+            "displayName": "macOS-only configuration"
+        },
+        {
+            "name": "linux",
+            "binaryDir": "${sourceDir}/build_prover",
+            "displayName": "linux-only configuration"
         },
         {
             "name": "baseline",
