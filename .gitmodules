@@ -17,6 +17,3 @@
 [submodule "depends/tbb/oneTBB"]
 	path = depends/tbb/oneTBB
 	url = https://github.com/oneapi-src/oneTBB
-[submodule "depends/oneTBB"]
-	path = depends/oneTBB
-	url = https://github.com/oneapi-src/oneTBB.git
