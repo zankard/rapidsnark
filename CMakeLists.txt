@@ -31,7 +31,7 @@ endif()
 
 
 include_directories(BEFORE ${GMP_INCLUDE_DIR})
-
+find_package(TBB CONFIG REQUIRED)
 
 
 if(USE_OPENMP)

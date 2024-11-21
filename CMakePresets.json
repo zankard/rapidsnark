@@ -1,0 +1,31 @@
+{
+    "version": 9,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "macOS",
+            "binaryDir": "${sourceDir}/build_prover_macos_arm64",
+            "displayName": "macOS-only configuration",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "baseline",
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "vcpkg",
+            "inherits": "baseline",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            }
+        }
+    ]
+}
