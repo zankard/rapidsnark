@@ -263,7 +263,7 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
     metrics.prover_time = prover_duration.count();
 
     const char* proof_raw = strdup(proof.dump().c_str());
-    const char* public_raw = stringPublic.c_str();
+    const char* public_raw = strdup(stringPublic.c_str());
 
     log_info("FullProverImpl::prove end");
     return ProverResponse(proof_raw, public_raw, metrics);
