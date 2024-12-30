@@ -32,6 +32,7 @@ struct ProverResponse
 {
     ProverResponseType    type;
     char const*           raw_json;
+    char const*           raw_public_json;
     ProverError           error;
     ProverResponseMetrics metrics;
 
@@ -40,7 +41,7 @@ private:
 
 public:
     ProverResponse(ProverError _error);
-    ProverResponse(const char* _raw_json, ProverResponseMetrics _metrics);
+    ProverResponse(const char* _raw_json, const char* _raw_public_json, ProverResponseMetrics _metrics);
 
     ProverResponse()                                 = delete;
     ProverResponse(ProverResponse const&)            = delete;

@@ -76,6 +76,19 @@ void log_info(std::string msg) { log("INFO", msg); }
 void log_debug(std::string msg) { log("DEBUG", msg); }
 void log_error(std::string msg) { log("ERROR", msg); }
 
+static std::string
+BuildPublicString(AltBn128::FrElement *wtnsData, uint32_t nPublic)
+{
+    json jsonPublic;
+    AltBn128::FrElement aux;
+    for (u_int32_t i=1; i<= nPublic; i++) {
+        AltBn128::Fr.toMontgomery(aux, wtnsData[i]);
+        jsonPublic.push_back(AltBn128::Fr.toString(aux));
+    }
+
+    return jsonPublic.dump();
+}
+
 FullProver::FullProver(const char* _zkeyFileName)
 {
     // std::cout << "in FullProver constructor" << std::endl;
@@ -184,15 +197,18 @@ FullProverImpl::~FullProverImpl() { mpz_clear(altBbn128r); }
 ProverResponse::ProverResponse(ProverError _error)
     : type(ProverResponseType::ERROR)
     , raw_json(ProverResponse::empty_string)
+    , raw_public_json(ProverResponse::empty_string)
     , error(_error)
     , metrics(ProverResponseMetrics())
 {
 }
 
 ProverResponse::ProverResponse(const char*           _raw_json,
+                               const char*           _raw_public_json,
                                ProverResponseMetrics _metrics)
     : type(ProverResponseType::SUCCESS)
     , raw_json(_raw_json)
+    , raw_public_json(_raw_public_json)
     , error(ProverError::NONE)
     , metrics(_metrics)
 {
@@ -224,6 +240,10 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
 
     auto start = std::chrono::high_resolution_clock::now();
     json proof = prover->prove(wtnsData)->toJson();
+
+    auto stringPublic = BuildPublicString(wtnsData, zkHeader->nPublic);
+
+
     auto end   = std::chrono::high_resolution_clock::now();
     auto prover_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -243,9 +263,10 @@ ProverResponse FullProverImpl::prove(const char* witness_file_path) const
     metrics.prover_time = prover_duration.count();
 
     const char* proof_raw = strdup(proof.dump().c_str());
+    const char* public_raw = stringPublic.c_str();
 
     log_info("FullProverImpl::prove end");
-    return ProverResponse(proof_raw, metrics);
+    return ProverResponse(proof_raw, public_raw, metrics);
 }
 
 ProverResponse::~ProverResponse()
@@ -255,5 +276,10 @@ ProverResponse::~ProverResponse()
     {
         // Not a pretty solution, but works
         free(const_cast<char*>(raw_json));
+    }
+
+    if (raw_public_json != empty_string)
+    {
+        free(const_cast<char*>(raw_public_json));
     }
 }
